@@ -1,0 +1,19 @@
+{
+  "name": "pulse",
+  "description": "Pulse — Circles Fitness Club",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@aboutcircles/miniapp-sdk": "latest",
+    "viem": "^2.21.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}
