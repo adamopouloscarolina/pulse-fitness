@@ -172,6 +172,6 @@ Steps 1–3 are all client-side and ship this week. Steps 4–6 need a contract,
 ## Open questions
 
 - Does `@aboutcircles/miniapp-sdk` expose any platform-level permissions in iOS hosts? If yes, native HealthKit access becomes possible without our own iOS app.
-- Onboarding hand-off: new-to-Circles users get sent to the **Gnosis app** to create their Circles identity. (Metri was retired — Gnosis app is the current onboarding surface.) Need the exact URL to deep-link to.
+- Onboarding hand-off URL: **https://app.gnosis.io/welcome** — confirmed by Carolina, 2026-05-14. New-to-Circles users get deep-linked there to create their Circles identity. (Metri was retired — Gnosis app is the current onboarding surface.)
 - Personal CRC vs group CRC for the stake currency. Group CRCs are ERC-20 (easier to pool); personal CRCs are ERC-1155 (truer to Circles' UBI model). Probably group CRC for v1 simplicity.
 - Pool size sanity check: at 1 CRC/hour UBI, a 20 CRC stake = ~20 hours of UBI = about a day's accrual. Feels right for "this should sting if I forfeit but isn't financially scary."

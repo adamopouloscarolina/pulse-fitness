@@ -4,6 +4,15 @@
 
 import { getAddress, isAddress } from 'viem';
 import { submitTransactions } from './bridge.js';
+import {
+  DEFAULT_CONFIG,
+  makeMockLobby,
+  activateChallenge,
+  tickDay,
+  bumpYourSteps,
+  endChallenge as endMock,
+  resetChallenge,
+} from './demo.js';
 
 const STORAGE_KEY = 'circles-fitness-state-v1';
 
@@ -41,13 +50,22 @@ const defaultState = {
     ],
     steps: 7842,
   },
+  // Wooden-spoon challenge state machine: idle → lobby → active → ended → idle.
   challenge: {
-    title: '10k steps × 5 days',
-    pool: 200,        // CRC stake pool
-    progressDays: 3,
-    targetDays: 5,
-    joined: false,
+    state: 'idle',
+    config: null,
+    group: null,
+    timing: null,
+    settlement: null,
   },
+  // Mock CRC balance used by the demo flow. Replaced by real on-chain
+  // balance when the contract is wired up.
+  balance: {
+    available: 200,
+    locked: 0,
+  },
+  // Modal for configuring a new challenge.
+  showChallengeConfig: false,
   activePlaylist: 'walk', // 'walk' | 'run'
 };
 
@@ -55,7 +73,15 @@ const defaultState = {
 // don't break older saves.
 const loaded = load();
 let state = loaded
-  ? { ...structuredClone(defaultState), ...loaded, mealSearch: { ...emptyMealSearch } }
+  ? {
+      ...structuredClone(defaultState),
+      ...loaded,
+      mealSearch: { ...emptyMealSearch },
+      // Migrate stale legacy challenge shape ({ title, pool, joined, ... })
+      challenge: loaded.challenge?.state ? loaded.challenge : structuredClone(defaultState.challenge),
+      balance: loaded.balance ?? structuredClone(defaultState.balance),
+      showChallengeConfig: false,
+    }
   : structuredClone(defaultState);
 // Auto-open onboarding on every load until a profile is set.
 if (!state.profile) state.showOnboarding = true;
@@ -244,37 +270,79 @@ export function getTotals() {
   );
 }
 
-// --- Challenge (on-chain) ------------------------------------------
+// --- Challenge (demo flow, in-memory mock) -------------------------
+//
+// The full state machine is: idle → lobby → active → ended → idle.
+// While we don't have a deployed escrow contract, all transitions are
+// purely local. When the contract lands, each transition will be
+// backed by a real on-chain tx — the UI shape stays the same.
 
-export async function joinChallenge() {
-  if (!state.wallet) {
-    setStatus('Connect your wallet via the host first.');
+export function openChallengeConfig()  { update({ showChallengeConfig: true });  }
+export function closeChallengeConfig() { update({ showChallengeConfig: false }); }
+
+// Create a fresh lobby (you + 3 mock friends, all auto-joined for demo speed).
+export function createChallenge(config = DEFAULT_CONFIG) {
+  const challenge = makeMockLobby(config);
+  update({ challenge, showChallengeConfig: false });
+}
+
+// Move lobby → active. Deducts (X + P) from your available balance,
+// locks it. Real contract will replace this with an approve + join tx.
+export function stakeAndJoin() {
+  const c = state.challenge;
+  if (c.state !== 'lobby') return;
+  const required = c.config.stakeX + c.config.stakeP;
+  if (state.balance.available < required) {
+    setStatus(`Not enough CRC. Need ${required}, have ${state.balance.available}.`);
     return;
   }
+  const activated = activateChallenge(c);
+  update({
+    challenge: activated,
+    balance: {
+      available: state.balance.available - required,
+      locked:    state.balance.locked + required,
+    },
+  });
+}
 
-  setStatus('Submitting stake…');
+export function advanceDay() {
+  if (state.challenge.state !== 'active') return;
+  update({ challenge: tickDay(state.challenge) });
+}
 
-  // TODO: replace with a call to your real challenge-escrow contract
-  // on Gnosis Chain. For now this is a no-op tx (0 value back to
-  // self) so you can verify the host approval flow end-to-end.
-  //
-  // Sketch of what the real call will look like:
-  //
-  //   import { encodeFunctionData, parseUnits } from 'viem';
-  //   const data = encodeFunctionData({
-  //     abi: challengeAbi,
-  //     functionName: 'join',
-  //     args: [challengeId, parseUnits(String(state.challenge.pool / 4), 18)],
-  //   });
-  //   const txs = [{ to: CHALLENGE_CONTRACT, data, value: 0n }];
+export function addYourSteps(delta) {
+  if (state.challenge.state !== 'active') return;
+  update({ challenge: bumpYourSteps(state.challenge, delta) });
+}
 
-  const txs = [{ to: state.wallet, data: '0x', value: 0n }];
+export function endChallengeNow() {
+  if (state.challenge.state !== 'active') return;
+  update({ challenge: endMock(state.challenge) });
+}
 
-  try {
-    const hashes = await submitTransactions(txs);
-    update({ challenge: { ...state.challenge, joined: true } });
-    setStatus(`Joined: ${hashes[0]?.slice(0, 10)}…`);
-  } catch (err) {
-    setStatus(`Failed: ${err.shortMessage || err.message || String(err)}`);
-  }
+// Settle: pay out the locked stakes according to wooden-spoon rules.
+export function claimWinnings() {
+  const c = state.challenge;
+  if (c.state !== 'ended' || c.settlement?.claimed) return;
+  const youRanked = c.settlement.rankings.find(r => r.isYou);
+  const yourNet = youRanked?.payout ?? 0;
+  const yourStake = c.config.stakeX + c.config.stakeP;
+
+  // Your locked stake is returned to "available" *minus* your net P&L.
+  // (e.g. winner with +70 net: 30 locked → 100 available; last with -30 net: 30 locked → 0 available.)
+  update({
+    challenge: {
+      ...c,
+      settlement: { ...c.settlement, claimed: true },
+    },
+    balance: {
+      available: state.balance.available + yourStake + yourNet,
+      locked:    Math.max(0, state.balance.locked - yourStake),
+    },
+  });
+}
+
+export function resetToIdle() {
+  update({ challenge: resetChallenge() });
 }

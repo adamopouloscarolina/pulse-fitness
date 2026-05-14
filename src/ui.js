@@ -4,14 +4,19 @@
 
 import {
   getState, getTotals,
-  addMeal, removeMeal, joinChallenge,
+  addMeal, removeMeal,
   setActivePlaylist,
   saveProfile, openOnboarding, closeOnboarding,
   openMealSearch, closeMealSearch,
   setMealQuery, setMealResults, setMealSearchError,
   selectMealProduct, unselectMealProduct,
   setSelectedGrams, macrosForProduct, confirmSelectedMeal,
+  openChallengeConfig, closeChallengeConfig,
+  createChallenge, stakeAndJoin,
+  advanceDay, addYourSteps, endChallengeNow,
+  claimWinnings, resetToIdle,
 } from './state.js';
+import { computeRanking, computePayouts, DEFAULT_CONFIG } from './demo.js';
 import { PLAYLISTS } from './playlists.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -73,18 +78,7 @@ export function render() {
           </div>
         </section>
 
-        <section class="card challenge">
-          <h3>Weekly challenge</h3>
-          <p class="title">${c.title}</p>
-          <span class="pool">Pool · ${c.pool} CRC</span>
-          <div class="progress">
-            <div class="progress-fill" style="width:${pct(c.progressDays, c.targetDays)}%"></div>
-          </div>
-          <p class="progress-text">${c.progressDays} of ${c.targetDays} days</p>
-          <button class="btn" id="join-challenge" ${c.joined || !s.wallet ? 'disabled' : ''}>
-            ${c.joined ? 'Joined ✓' : s.wallet ? 'Stake & join' : 'Connect wallet to join'}
-          </button>
-        </section>
+        ${challengeCard(s)}
 
         <section class="card">
           <h3>Steps</h3>
@@ -117,12 +111,232 @@ export function render() {
       </div>
 
       ${s.showOnboarding ? onboardingModal(s) : ''}
+      ${s.showChallengeConfig ? challengeConfigModal(s) : ''}
       ${s.mealSearch.open ? mealSearchModal(s) : ''}
     </div>
   `;
 
   wire();
 }
+
+// --- Challenge card (state machine: idle / lobby / active / ended) -
+
+function challengeCard(s) {
+  const c = s.challenge;
+  switch (c.state) {
+    case 'lobby':  return challengeLobby(s, c);
+    case 'active': return challengeActive(s, c);
+    case 'ended':  return challengeEnded(s, c);
+    case 'idle':
+    default:       return challengeIdle(s);
+  }
+}
+
+function challengeIdle(s) {
+  return `
+    <section class="card challenge challenge-idle">
+      <h3>Weekly challenge</h3>
+      <p class="title">No active challenge</p>
+      <p class="idle-sub">Start a challenge with friends. Most steps over the week takes the pot.</p>
+      <div class="balance-strip">
+        <span class="balance-label">Your CRC</span>
+        <span class="balance-num">${s.balance.available}</span>
+      </div>
+      <button class="btn" id="start-challenge">Start a challenge</button>
+    </section>
+  `;
+}
+
+function challengeLobby(s, c) {
+  const required = c.config.stakeX + c.config.stakeP;
+  const totalPool = c.group.members.length * required;
+  const canStake = s.balance.available >= required;
+  return `
+    <section class="card challenge challenge-lobby">
+      <div class="lobby-head">
+        <h3>Group lobby</h3>
+        <button class="ghost-btn" id="cancel-lobby" aria-label="Cancel">×</button>
+      </div>
+      <p class="title">${goalLabel(c.config.goal)} · ${c.config.durationDays} days</p>
+      <div class="lobby-members">
+        ${c.group.members.map(memberPill).join('')}
+      </div>
+      <div class="stake-row">
+        <div class="stake-col">
+          <span class="stake-label">Your stake</span>
+          <span class="stake-val">${required} CRC</span>
+          <span class="stake-sub">${c.config.stakeX} to win · ${c.config.stakeP} penalty</span>
+        </div>
+        <div class="stake-col stake-pool">
+          <span class="stake-label">Total pool</span>
+          <span class="stake-val">${totalPool} CRC</span>
+          <span class="stake-sub">${c.group.members.length} members</span>
+        </div>
+      </div>
+      <button class="btn" id="stake-and-join" ${canStake ? '' : 'disabled'}>
+        ${canStake ? `Stake ${required} CRC & lock in` : `Not enough CRC (need ${required})`}
+      </button>
+    </section>
+  `;
+}
+
+function challengeActive(s, c) {
+  const ranked = computeRanking(c.group.members);
+  const youRanked = ranked.find(m => m.isYou);
+  const projected = computePayouts(ranked, c.config).find(m => m.isYou);
+  const N = ranked.length;
+  const bestCase = (N - 1) * c.config.stakeX + c.config.stakeP;
+  const worstCase = -(c.config.stakeX + c.config.stakeP);
+  const daysLeft = c.config.durationDays - c.timing.day + 1;
+
+  return `
+    <section class="card challenge challenge-active">
+      <div class="lobby-head">
+        <h3>Day ${c.timing.day} of ${c.config.durationDays}</h3>
+        <span class="days-left">${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} left</span>
+      </div>
+      <p class="title">${goalLabel(c.config.goal)}</p>
+      <div class="leaderboard">
+        ${ranked.map(leaderRow).join('')}
+      </div>
+      <div class="projection">
+        <div class="proj-line">
+          <span>If standings hold:</span>
+          <strong class="${projected.payout >= 0 ? 'pos' : 'neg'}">${signed(projected.payout)} CRC</strong>
+        </div>
+        <div class="proj-extremes">
+          <span>Best (1st): <strong class="pos">+${bestCase}</strong></span>
+          <span>Worst (last): <strong class="neg">${worstCase}</strong></span>
+        </div>
+      </div>
+      <details class="demo-controls">
+        <summary>Demo controls</summary>
+        <div class="demo-btns">
+          <button data-demo="add-steps">+ 2,000 steps (you)</button>
+          <button data-demo="advance-day">Skip a day</button>
+          <button data-demo="end-now">End now</button>
+        </div>
+      </details>
+    </section>
+  `;
+}
+
+function challengeEnded(s, c) {
+  const ranked = c.settlement.rankings;
+  const you = ranked.find(m => m.isYou);
+  const claimed = c.settlement.claimed;
+  return `
+    <section class="card challenge challenge-ended">
+      <h3>Challenge complete</h3>
+      <p class="title">${rankEmoji(you.rank)} You finished ${ordinal(you.rank)}</p>
+      <div class="settlement-list">
+        ${ranked.map(settlementRow).join('')}
+      </div>
+      <div class="your-payout">
+        <span>Your net</span>
+        <strong class="${you.payout >= 0 ? 'pos' : 'neg'}">${signed(you.payout)} CRC</strong>
+      </div>
+      <button class="btn" id="claim-winnings" ${claimed ? 'disabled' : ''}>
+        ${claimed ? 'Settled ✓ — Start new challenge' : (you.payout >= 0 ? `Claim ${you.payout} CRC` : 'Settle stake')}
+      </button>
+      ${claimed ? `<button class="ghost-btn full" id="reset-to-idle">Start a new challenge</button>` : ''}
+    </section>
+  `;
+}
+
+function challengeConfigModal(s) {
+  const c = DEFAULT_CONFIG;
+  return `
+    <div class="modal-backdrop" id="challenge-config-backdrop">
+      <div class="modal" role="dialog">
+        <button class="modal-close" id="challenge-config-close">×</button>
+        <h2>Start a challenge</h2>
+        <p class="modal-sub">You + 3 friends compete for a week. Top score takes the pool. Last place pays a wooden-spoon penalty.</p>
+
+        <form id="challenge-config-form" class="profile-form">
+          <fieldset class="seg-group">
+            <legend>Goal</legend>
+            <div class="seg">
+              <label><input type="radio" name="goal" value="steps" checked> Most steps</label>
+              <label><input type="radio" name="goal" value="distance-km"> Most km</label>
+              <label><input type="radio" name="goal" value="active-min"> Most active min</label>
+            </div>
+          </fieldset>
+
+          <fieldset class="seg-group">
+            <legend>Duration</legend>
+            <div class="seg">
+              <label><input type="radio" name="durationDays" value="3"> 3 days</label>
+              <label><input type="radio" name="durationDays" value="7" checked> 7 days</label>
+              <label><input type="radio" name="durationDays" value="14"> 14 days</label>
+            </div>
+          </fieldset>
+
+          <div class="grid-2">
+            <label class="field">
+              <span>To-win stake (CRC)</span>
+              <input type="number" name="stakeX" value="${c.stakeX}" min="1" max="500" />
+            </label>
+            <label class="field">
+              <span>Wooden-spoon (CRC)</span>
+              <input type="number" name="stakeP" value="${c.stakeP}" min="0" max="500" />
+            </label>
+          </div>
+
+          <p class="modal-sub" style="margin: 2px 0 14px;">
+            Winner gets <strong>+(N−1)·X + P</strong> · middle losers pay X · last pays X + P
+          </p>
+
+          <button type="submit" class="primary-btn">Create lobby</button>
+        </form>
+      </div>
+    </div>
+  `;
+}
+
+// --- Tiny helpers ----------------------------------------
+
+function memberPill(m) {
+  return `
+    <div class="member-pill ${m.isYou ? 'is-you' : ''}">
+      <span class="avatar" style="background:${m.color}">${m.initials}</span>
+      <span class="member-name">${m.name}</span>
+      <span class="member-status">${m.status === 'joined' ? '✓' : '⏱'}</span>
+    </div>
+  `;
+}
+
+function leaderRow(m) {
+  return `
+    <div class="leader-row ${m.isYou ? 'is-you' : ''}">
+      <span class="leader-rank">${m.rank}</span>
+      <span class="avatar" style="background:${m.color}">${m.initials}</span>
+      <span class="leader-name">${m.name}</span>
+      <span class="leader-steps">${new Intl.NumberFormat('en-US').format(m.steps)}</span>
+    </div>
+  `;
+}
+
+function settlementRow(m) {
+  return `
+    <div class="leader-row ${m.isYou ? 'is-you' : ''}">
+      <span class="leader-rank">${rankEmoji(m.rank)}</span>
+      <span class="avatar" style="background:${m.color}">${m.initials}</span>
+      <span class="leader-name">${m.name}</span>
+      <span class="leader-payout ${m.payout >= 0 ? 'pos' : 'neg'}">${signed(m.payout)} CRC</span>
+    </div>
+  `;
+}
+
+const goalLabel = (g) => ({
+  'steps':       'Most steps',
+  'distance-km': 'Most kilometres',
+  'active-min':  'Most active minutes',
+}[g] ?? g);
+
+const ordinal = (n) => ['1st','2nd','3rd','4th','5th','6th','7th','8th'][n - 1] ?? `${n}th`;
+const rankEmoji = (n) => ({1:'🥇',2:'🥈',3:'🥉'}[n] ?? (n === 4 ? '🥄' : `#${n}`));
+const signed = (n) => (n > 0 ? `+${n}` : `${n}`);
 
 function mealSearchModal(s) {
   const ms = s.mealSearch;
@@ -374,9 +588,41 @@ function wire() {
   $('#add-meal')?.addEventListener('click', openMealSearch);
   wireMealSearch();
 
-  $('#join-challenge')?.addEventListener('click', () => {
-    joinChallenge().catch(() => {});
+  // Challenge state machine
+  $('#start-challenge')?.addEventListener('click', openChallengeConfig);
+  $('#challenge-config-close')?.addEventListener('click', closeChallengeConfig);
+  $('#challenge-config-backdrop')?.addEventListener('click', (e) => {
+    if (e.target.id === 'challenge-config-backdrop') closeChallengeConfig();
   });
+  $('#challenge-config-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    createChallenge({
+      goal:         fd.get('goal') || 'steps',
+      durationDays: Number(fd.get('durationDays')) || 7,
+      stakeX:       Number(fd.get('stakeX')) || 20,
+      stakeP:       Number(fd.get('stakeP')) || 10,
+    });
+  });
+  $('#cancel-lobby')?.addEventListener('click', resetToIdle);
+  $('#stake-and-join')?.addEventListener('click', stakeAndJoin);
+
+  // Demo controls (only present during 'active')
+  document.querySelectorAll('[data-demo]').forEach(btn => {
+    const action = btn.getAttribute('data-demo');
+    btn.addEventListener('click', () => {
+      if (action === 'add-steps')    addYourSteps(2000);
+      if (action === 'advance-day')  advanceDay();
+      if (action === 'end-now')      endChallengeNow();
+    });
+  });
+
+  // Settlement
+  $('#claim-winnings')?.addEventListener('click', () => {
+    const claimed = getState().challenge.settlement?.claimed;
+    if (claimed) resetToIdle(); else claimWinnings();
+  });
+  $('#reset-to-idle')?.addEventListener('click', resetToIdle);
 
   document.querySelectorAll('[data-remove]').forEach(btn => {
     btn.addEventListener('click', (e) => {
