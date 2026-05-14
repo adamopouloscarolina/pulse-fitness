@@ -26,3 +26,9 @@ pnpm-debug.log*
 .idea/
 .vscode/
 *.swp
+
+# Foundry build artifacts and broadcast logs
+contracts/cache/
+contracts/out/
+contracts/broadcast/
+contracts/lib/
