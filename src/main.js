@@ -10,6 +10,7 @@ import {
   setWallet,
   setMode,
   subscribe,
+  initChain,
 } from './state.js';
 
 import { render, initTheme } from './ui.js';
@@ -19,6 +20,11 @@ initTheme();
 
 // 1. Detect host mode (standalone vs running inside Circles).
 setMode(isMiniappMode() ? 'miniapp' : 'standalone');
+
+// 1b. Probe the local Anvil chain. If alive, future challenge actions
+// will fire real on-chain transactions. If not, we fall back to the
+// in-memory mock — no user-visible difference except the on-chain pill.
+initChain();
 
 // 2. Subscribe wallet from host. This is the source of truth.
 onWalletChange((address) => {

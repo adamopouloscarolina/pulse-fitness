@@ -45,6 +45,7 @@ export function render() {
           </div>
         </div>
         <div class="topbar-actions">
+          ${chainPill(s)}
           <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
             <span class="theme-icon sun">☀</span>
             <span class="theme-icon moon">☾</span>
@@ -501,6 +502,16 @@ function walletPill(s) {
     return `<div class="pill gray"><span class="dot"></span>${label}</div>`;
   }
   return `<div class="pill purple"><span class="dot"></span>${s.wallet.slice(0, 6)}…${s.wallet.slice(-4)}</div>`;
+}
+
+function chainPill(s) {
+  if (s.chain?.pending) {
+    return `<div class="pill amber"><span class="dot pulse"></span>tx pending…</div>`;
+  }
+  if (s.chain?.alive) {
+    return `<div class="pill mint"><span class="dot"></span>on-chain</div>`;
+  }
+  return `<div class="pill gray"><span class="dot"></span>mock</div>`;
 }
 
 function macroBar(label, value, goal, unit, color) {

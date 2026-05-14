@@ -13,6 +13,18 @@ import {
   endChallenge as endMock,
   resetChallenge,
 } from './demo.js';
+import {
+  isChainAlive,
+  getEthBalance,
+  createChallengeOnChain,
+  joinChallengeOnChain,
+  submitStepsOnChain,
+  settleOnChain,
+  withdrawOnChain,
+  fastForward,
+  getWithdrawable,
+  CHALLENGE_ADDRESS,
+} from './chain.js';
 
 const STORAGE_KEY = 'circles-fitness-state-v1';
 
@@ -66,6 +78,12 @@ const defaultState = {
   },
   // Modal for configuring a new challenge.
   showChallengeConfig: false,
+  // On-chain integration state. Set during initChain() at boot.
+  chain: {
+    alive:    false,
+    address:  CHALLENGE_ADDRESS,
+    pending:  false, // true while waiting on a tx
+  },
   activePlaylist: 'walk', // 'walk' | 'run'
 };
 
@@ -270,76 +288,168 @@ export function getTotals() {
   );
 }
 
-// --- Challenge (demo flow, in-memory mock) -------------------------
+// --- Challenge state machine ---------------------------------------
 //
-// The full state machine is: idle → lobby → active → ended → idle.
-// While we don't have a deployed escrow contract, all transitions are
-// purely local. When the contract lands, each transition will be
-// backed by a real on-chain tx — the UI shape stays the same.
+// Flow: idle → lobby → active → ended → idle.
+//
+// When the local Anvil chain is alive (state.chain.alive), each
+// transition fires a real on-chain transaction. Otherwise we fall
+// back to a pure in-memory mock so the UI still works offline.
 
 export function openChallengeConfig()  { update({ showChallengeConfig: true });  }
 export function closeChallengeConfig() { update({ showChallengeConfig: false }); }
 
-// Create a fresh lobby (you + 3 mock friends, all auto-joined for demo speed).
-export function createChallenge(config = DEFAULT_CONFIG) {
-  const challenge = makeMockLobby(config);
-  update({ challenge, showChallengeConfig: false });
+// One-time boot: probe the chain, read your starting balance.
+export async function initChain() {
+  const alive = await isChainAlive();
+  if (!alive) {
+    update({ chain: { ...state.chain, alive: false } });
+    return;
+  }
+  const eth = await getEthBalance('you');
+  update({
+    chain:   { ...state.chain, alive: true },
+    balance: { available: Math.round(eth), locked: 0 },
+  });
 }
 
-// Move lobby → active. Deducts (X + P) from your available balance,
-// locks it. Real contract will replace this with an approve + join tx.
-export function stakeAndJoin() {
+async function withPendingTx(fn) {
+  update({ chain: { ...state.chain, pending: true } });
+  try {
+    return await fn();
+  } finally {
+    update({ chain: { ...state.chain, pending: false } });
+  }
+}
+
+// Create the lobby. On-chain: deploys a challenge instance and stores
+// the on-chain id alongside the mock state.
+export async function createChallenge(config = DEFAULT_CONFIG) {
+  const mock = makeMockLobby(config);
+  if (!state.chain.alive) {
+    update({ challenge: mock, showChallengeConfig: false });
+    return;
+  }
+  update({ showChallengeConfig: false });
+  await withPendingTx(async () => {
+    setStatus('Creating challenge on chain…');
+    const onChainId = await createChallengeOnChain(config);
+    mock.onChainId = onChainId;
+    update({ challenge: mock });
+    setStatus(`Created challenge #${onChainId}`);
+  });
+}
+
+// Lobby → active. On-chain: all 4 members join() with their stake.
+export async function stakeAndJoin() {
   const c = state.challenge;
   if (c.state !== 'lobby') return;
   const required = c.config.stakeX + c.config.stakeP;
-  if (state.balance.available < required) {
-    setStatus(`Not enough CRC. Need ${required}, have ${state.balance.available}.`);
+
+  if (!state.chain.alive) {
+    if (state.balance.available < required) {
+      setStatus(`Not enough CRC. Need ${required}, have ${state.balance.available}.`);
+      return;
+    }
+    const activated = activateChallenge(c);
+    update({
+      challenge: activated,
+      balance:   { available: state.balance.available - required, locked: state.balance.locked + required },
+    });
     return;
   }
-  const activated = activateChallenge(c);
-  update({
-    challenge: activated,
-    balance: {
-      available: state.balance.available - required,
-      locked:    state.balance.locked + required,
-    },
+
+  await withPendingTx(async () => {
+    setStatus('Submitting stakes on chain…');
+    for (const who of ['you', 'alex', 'maria', 'joao']) {
+      await joinChallengeOnChain(c.onChainId, who, required);
+    }
+    const activated = activateChallenge(c);
+    activated.onChainId = c.onChainId;
+    const eth = await getEthBalance('you');
+    update({
+      challenge: activated,
+      balance:   { available: Math.round(eth), locked: required },
+    });
+    setStatus('Locked in.');
   });
 }
 
 export function advanceDay() {
   if (state.challenge.state !== 'active') return;
-  update({ challenge: tickDay(state.challenge) });
+  const ticked = tickDay(state.challenge);
+  ticked.onChainId = state.challenge.onChainId;
+  update({ challenge: ticked });
 }
 
 export function addYourSteps(delta) {
   if (state.challenge.state !== 'active') return;
-  update({ challenge: bumpYourSteps(state.challenge, delta) });
+  const bumped = bumpYourSteps(state.challenge, delta);
+  bumped.onChainId = state.challenge.onChainId;
+  update({ challenge: bumped });
 }
 
-export function endChallengeNow() {
-  if (state.challenge.state !== 'active') return;
-  update({ challenge: endMock(state.challenge) });
+// End the challenge. On-chain: submit each member's final step count,
+// fast-forward past the duration, settle.
+export async function endChallengeNow() {
+  const c = state.challenge;
+  if (c.state !== 'active') return;
+
+  if (!state.chain.alive) {
+    update({ challenge: endMock(c) });
+    return;
+  }
+
+  await withPendingTx(async () => {
+    setStatus('Submitting final step counts on chain…');
+    for (const m of c.group.members) {
+      const key = m.id; // 'you' | 'alex' | 'maria' | 'joao' match KEYS
+      await submitStepsOnChain(c.onChainId, key, m.steps);
+    }
+    setStatus('Fast-forwarding chain time…');
+    await fastForward(c.config.durationDays * 86400 + 60);
+    setStatus('Settling…');
+    await settleOnChain(c.onChainId);
+    const ended = endMock(c);
+    ended.onChainId = c.onChainId;
+    update({ challenge: ended });
+    setStatus('Settled.');
+  });
 }
 
-// Settle: pay out the locked stakes according to wooden-spoon rules.
-export function claimWinnings() {
+export async function claimWinnings() {
   const c = state.challenge;
   if (c.state !== 'ended' || c.settlement?.claimed) return;
-  const youRanked = c.settlement.rankings.find(r => r.isYou);
-  const yourNet = youRanked?.payout ?? 0;
-  const yourStake = c.config.stakeX + c.config.stakeP;
 
-  // Your locked stake is returned to "available" *minus* your net P&L.
-  // (e.g. winner with +70 net: 30 locked → 100 available; last with -30 net: 30 locked → 0 available.)
-  update({
-    challenge: {
-      ...c,
-      settlement: { ...c.settlement, claimed: true },
-    },
-    balance: {
-      available: state.balance.available + yourStake + yourNet,
-      locked:    Math.max(0, state.balance.locked - yourStake),
-    },
+  if (!state.chain.alive) {
+    const yourNet = c.settlement.rankings.find(r => r.isYou)?.payout ?? 0;
+    const yourStake = c.config.stakeX + c.config.stakeP;
+    update({
+      challenge: { ...c, settlement: { ...c.settlement, claimed: true }},
+      balance:   {
+        available: state.balance.available + yourStake + yourNet,
+        locked:    Math.max(0, state.balance.locked - yourStake),
+      },
+    });
+    return;
+  }
+
+  await withPendingTx(async () => {
+    setStatus('Withdrawing winnings on chain…');
+    // Anyone with a positive withdrawable can call. For demo we have
+    // all keys, so claim for all members so the contract is clean.
+    for (const who of ['you', 'alex', 'maria', 'joao']) {
+      const owed = await getWithdrawable(c.onChainId, who);
+      if (owed > 0) {
+        await withdrawOnChain(c.onChainId, who);
+      }
+    }
+    const eth = await getEthBalance('you');
+    update({
+      challenge: { ...c, settlement: { ...c.settlement, claimed: true }},
+      balance:   { available: Math.round(eth), locked: 0 },
+    });
+    setStatus('Claimed.');
   });
 }
 
