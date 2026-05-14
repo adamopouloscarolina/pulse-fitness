@@ -83,6 +83,12 @@ const defaultState = {
     address:  CHALLENGE_ADDRESS,
     pending:  false, // true while waiting on a tx
   },
+  // Live data from the iPhone Health → Shortcut → /api/health-steps bridge.
+  health: {
+    steps:     null, // last reported daily steps from HealthKit
+    syncedAt:  null, // ms timestamp the iPhone posted
+    lastPolled:null, // ms timestamp we last fetched
+  },
   activePlaylist: 'walk', // 'walk' | 'run'
 };
 
@@ -208,6 +214,36 @@ export function saveProfile(profile) {
 
 export function openOnboarding()  { update({ showOnboarding: true });  }
 export function closeOnboarding() { update({ showOnboarding: false }); }
+
+// --- iPhone Health sync (via Apple Shortcut bridge) ----------------
+
+export async function fetchHealthSteps() {
+  try {
+    const r = await fetch('/api/health-steps');
+    if (!r.ok) return;
+    const data = await r.json();
+    // Drop if no sync has ever happened OR nothing changed.
+    if (!data?.steps) {
+      update({ health: { ...state.health, lastPolled: Date.now() } });
+      return;
+    }
+    const fresh = data.syncedAt !== state.health.syncedAt;
+    update({
+      health: { steps: data.steps, syncedAt: data.syncedAt, lastPolled: Date.now() },
+    });
+    // If a challenge is active and the sync brought new data, mirror it into
+    // "your" leaderboard row so it shows real steps from your phone.
+    if (fresh && state.challenge.state === 'active') {
+      const c = state.challenge;
+      const members = c.group.members.map(m => m.isYou
+        ? { ...m, steps: data.steps, stepsToday: data.steps }
+        : m);
+      update({ challenge: { ...c, group: { ...c.group, members }}});
+    }
+  } catch {
+    // network down / dev server gone — just retry next tick
+  }
+}
 
 // --- Meal search (Open Food Facts) --------------------------------
 

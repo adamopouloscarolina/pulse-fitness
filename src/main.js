@@ -11,6 +11,7 @@ import {
   setMode,
   subscribe,
   initChain,
+  fetchHealthSteps,
 } from './state.js';
 
 import { render, initTheme } from './ui.js';
@@ -48,3 +49,8 @@ subscribe(() => render());
 
 // First paint.
 render();
+
+// Poll the iPhone Health bridge endpoint every 10s. Each successful
+// post from the Shortcut on the phone shows up here within ~10s.
+fetchHealthSteps();
+setInterval(fetchHealthSteps, 10_000);

@@ -81,14 +81,7 @@ export function render() {
 
         ${challengeCard(s)}
 
-        <section class="card">
-          <h3>Steps</h3>
-          <p class="stat-num">${fmt.format(s.today.steps)}</p>
-          <p class="stat-sub">of ${fmt.format(g.steps)} goal</p>
-          <div class="bar purple-track" style="margin-top:10px;">
-            <div class="bar-fill purple-bg" style="width:${pct(s.today.steps, g.steps)}%"></div>
-          </div>
-        </section>
+        ${stepsCard(s, g)}
 
         <section class="card">
           <h3>Last session</h3>
@@ -118,6 +111,37 @@ export function render() {
   `;
 
   wire();
+}
+
+// --- Steps card with iPhone Health sync indicator ------------------
+
+function stepsCard(s, g) {
+  // If we've ever received a sync, prefer that number over the mock seed.
+  const synced = s.health?.steps;
+  const value = synced ?? s.today.steps;
+  const subline = synced != null
+    ? `📱 iPhone Health · ${timeAgo(s.health.syncedAt)}`
+    : `of ${fmt.format(g.steps)} goal`;
+  return `
+    <section class="card">
+      <h3>Steps${synced != null ? ' · live' : ''}</h3>
+      <p class="stat-num">${fmt.format(value)}</p>
+      <p class="stat-sub">${subline}</p>
+      <div class="bar purple-track" style="margin-top:10px;">
+        <div class="bar-fill purple-bg" style="width:${pct(value, g.steps)}%"></div>
+      </div>
+    </section>
+  `;
+}
+
+function timeAgo(ms) {
+  if (!ms) return 'never';
+  const diff = Math.floor((Date.now() - ms) / 1000);
+  if (diff < 10)  return 'just now';
+  if (diff < 60)  return `${diff}s ago`;
+  if (diff < 3600)return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400)return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
 }
 
 // --- Challenge card (state machine: idle / lobby / active / ended) -
