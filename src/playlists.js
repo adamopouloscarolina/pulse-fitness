@@ -19,8 +19,8 @@ export const PLAYLISTS = {
     emoji: '🚶',
     tagline: '10k steps before you check your watch.',
     meta: 'Steady 100–120 BPM · ~45 min',
-    // Paste your walking playlist embed URL here:
-    embedUrl: '',
+    // Tidal: tidal.com/playlist/<id> → embed.tidal.com/playlists/<id>
+    embedUrl: 'https://embed.tidal.com/playlists/84ce75e6-534f-4e71-9062-2a1f895aaacf',
   },
   run: {
     title: 'Run',
