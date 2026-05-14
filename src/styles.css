@@ -398,13 +398,36 @@ button { font: inherit; cursor: pointer; }
   grid-template-columns: 24px 26px 1fr auto;
   align-items: center;
   gap: 10px;
-  padding: 6px 8px;
+  padding: 8px;
   border-radius: 6px;
 }
 .leader-row.is-you { background: rgba(255, 255, 255, 0.18); }
 .leader-rank { font-size: 13px; font-weight: 700; text-align: center; }
 .leader-name { font-size: 13px; font-weight: 500; }
 .leader-steps { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.leader-steps-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.15;
+}
+.leader-today {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.leader-today-suffix {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  margin-left: 2px;
+}
+.leader-total {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.65);
+  font-variant-numeric: tabular-nums;
+  margin-top: 1px;
+}
 
 .projection {
   background: rgba(255, 255, 255, 0.10);
@@ -428,6 +451,12 @@ button { font: inherit; cursor: pointer; }
   color: rgba(255, 255, 255, 0.78);
 }
 .proj-extremes strong { font-weight: 700; }
+.spoon-legend {
+  margin-top: 6px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.62);
+  line-height: 1.35;
+}
 .pos { color: #b6f3d6; }
 .neg { color: #ffc4b3; }
 

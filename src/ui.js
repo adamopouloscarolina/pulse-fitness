@@ -206,8 +206,9 @@ function challengeActive(s, c) {
         </div>
         <div class="proj-extremes">
           <span>Best (1st): <strong class="pos">+${bestCase}</strong></span>
-          <span>Worst (last): <strong class="neg">${worstCase}</strong></span>
+          <span>Worst (🥄 last): <strong class="neg">${worstCase}</strong></span>
         </div>
+        <p class="spoon-legend">🥄 = wooden spoon. Last place pays an extra ${c.config.stakeP} CRC on top of their stake.</p>
       </div>
       <details class="demo-controls">
         <summary>Demo controls</summary>
@@ -307,12 +308,17 @@ function memberPill(m) {
 }
 
 function leaderRow(m) {
+  const today = m.stepsToday ?? 0;
+  const total = m.steps ?? 0;
   return `
     <div class="leader-row ${m.isYou ? 'is-you' : ''}">
       <span class="leader-rank">${m.rank}</span>
       <span class="avatar" style="background:${m.color}">${m.initials}</span>
       <span class="leader-name">${m.name}</span>
-      <span class="leader-steps">${new Intl.NumberFormat('en-US').format(m.steps)}</span>
+      <span class="leader-steps-col">
+        <span class="leader-today">${today > 0 ? '+' : ''}${fmt.format(today)} <span class="leader-today-suffix">today</span></span>
+        <span class="leader-total">${fmt.format(total)} total</span>
+      </span>
     </div>
   `;
 }

@@ -35,11 +35,13 @@ export function makeMockLobby(config = DEFAULT_CONFIG) {
 }
 
 // Starts the active phase. Initial step counts are seeded plausibly.
+// stepsToday tracks the daily delta so the leaderboard can show
+// "today's race" instead of cumulative totals.
 export function activateChallenge(challenge) {
-  const seeded = challenge.group.members.map(m => ({
-    ...m,
-    steps: m.isYou ? 7842 : 4000 + Math.floor(Math.random() * 8000),
-  }));
+  const seeded = challenge.group.members.map(m => {
+    const total = m.isYou ? 7842 : 4000 + Math.floor(Math.random() * 8000);
+    return { ...m, steps: total, stepsToday: total };
+  });
   return {
     ...challenge,
     state: 'active',
@@ -49,14 +51,15 @@ export function activateChallenge(challenge) {
 }
 
 // Bumps step counts to simulate a day passing.
-// Each friend gets a plausible day's worth of steps; you stay where you are
-// until the user uses "+ steps" demo controls.
+// Friends get a plausible day's worth of steps; the day's delta goes
+// into stepsToday. You stay where you are until you tap "+ steps".
 export function tickDay(challenge) {
   if (challenge.state !== 'active') return challenge;
-  const ticked = challenge.group.members.map(m => ({
-    ...m,
-    steps: m.isYou ? m.steps : m.steps + 5000 + Math.floor(Math.random() * 8000),
-  }));
+  const ticked = challenge.group.members.map(m => {
+    if (m.isYou) return { ...m, stepsToday: 0 }; // new day, reset your daily counter
+    const dayDelta = 5000 + Math.floor(Math.random() * 8000);
+    return { ...m, steps: m.steps + dayDelta, stepsToday: dayDelta };
+  });
   const nextDay = (challenge.timing?.day ?? 1) + 1;
   if (nextDay > challenge.config.durationDays) {
     return endChallenge({ ...challenge, group: { ...challenge.group, members: ticked }});
@@ -71,7 +74,9 @@ export function tickDay(challenge) {
 export function bumpYourSteps(challenge, delta) {
   if (challenge.state !== 'active') return challenge;
   const members = challenge.group.members.map(m =>
-    m.isYou ? { ...m, steps: Math.max(0, m.steps + delta) } : m
+    m.isYou
+      ? { ...m, steps: Math.max(0, m.steps + delta), stepsToday: Math.max(0, (m.stepsToday ?? 0) + delta) }
+      : m
   );
   return { ...challenge, group: { ...challenge.group, members }};
 }
