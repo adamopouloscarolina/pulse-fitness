@@ -18,7 +18,7 @@ import {
   setView, resetAllData,
 } from './state.js';
 import { computeRanking, computePayouts, DEFAULT_CONFIG } from './demo.js';
-import { PLAYLISTS } from './playlists.js';
+import { PLAYLISTS, projectActivity } from './playlists.js';
 
 const $ = (sel) => document.querySelector(sel);
 const fmt = new Intl.NumberFormat('en-US');
@@ -677,7 +677,11 @@ function musicCard(s) {
         </div>
       </div>
       <p class="music-tagline">${escape(active.tagline)}</p>
-      <p class="music-meta">${active.emoji} ${escape(active.meta)}</p>
+      <p class="music-meta">${active.emoji} ${escape(active.meta)} · ~${active.durationMin} min</p>
+      <div class="music-projection">
+        <span class="proj-label">If you listen end-to-end:</span>
+        <span class="proj-value"><strong>${projectActivity(active).km.toFixed(1)} km</strong> · ${fmt.format(projectActivity(active).steps)} steps</span>
+      </div>
       <div class="music-embed">${embed}</div>
     </section>
   `;

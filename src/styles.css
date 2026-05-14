@@ -1012,8 +1012,37 @@ button { font: inherit; cursor: pointer; }
 .music-meta {
   color: var(--text-2);
   font-size: 12px;
-  margin: 0 0 14px;
+  margin: 0 0 10px;
 }
+
+.music-projection {
+  background: var(--purple-50);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 0 0 14px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.music-projection .proj-label {
+  font-size: 11px;
+  color: var(--purple);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+.music-projection .proj-value {
+  font-size: 13px;
+  color: var(--text);
+}
+.music-projection .proj-value strong {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--purple);
+}
+[data-theme="dark"] .music-projection .proj-value strong { color: #c9c0ff; }
 
 .music-embed {
   border-radius: 12px;
