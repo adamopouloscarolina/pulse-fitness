@@ -118,7 +118,13 @@ v1: at week end, the contract reads claimed step totals submitted by each player
 
 v2: upgrade to trust-circle quorum (default-on) once we have data on cheating rates.
 
-### 5. Coach payments (v2 — not in v1)
+### 5. Soundtrack — Apple Music embedded playlists
+
+A "Soundtrack" card with two tabs: **Walk** (steady tempo, daily steps) and **Run** (higher BPM). Each tab embeds an Apple Music playlist via the official `embed.music.apple.com` widget — no MusicKit JS, no Apple Developer token required for v1. Users with Apple Music subscriptions can play in-place; non-subscribers see a preview-only player. Playlists are config-driven (`src/playlists.js`) so anyone can swap them.
+
+v2: MusicKit JS for full account integration, BPM-matched recommendations driven by current step cadence, and tap-to-add to a personal "Pulse" playlist.
+
+### 6. Coach payments (v2 — not in v1)
 
 Nutritionists/trainers join via the trust graph. Clients pay per session in personal CRC. `signMessage`-based receipts. App takes a small SaaS fee, not a per-session cut.
 

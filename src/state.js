@@ -36,6 +36,7 @@ const defaultState = {
     targetDays: 5,
     joined: false,
   },
+  activePlaylist: 'walk', // 'walk' | 'run'
 };
 
 let state = load() ?? structuredClone(defaultState);
@@ -105,6 +106,14 @@ export function removeMeal(id) {
   update({
     today: { ...state.today, meals: state.today.meals.filter(m => m.id !== id) },
   });
+}
+
+// --- Music ---------------------------------------------------------
+
+export function setActivePlaylist(key) {
+  if (key !== 'walk' && key !== 'run') return;
+  if (state.activePlaylist === key) return;
+  update({ activePlaylist: key });
 }
 
 // --- Totals --------------------------------------------------------

@@ -5,7 +5,9 @@
 import {
   getState, getTotals,
   addMeal, removeMeal, joinChallenge,
+  setActivePlaylist,
 } from './state.js';
+import { PLAYLISTS } from './playlists.js';
 
 const $ = (sel) => document.querySelector(sel);
 const fmt = new Intl.NumberFormat('en-US');
@@ -101,6 +103,8 @@ export function render() {
           </div>
         </section>
 
+        ${musicCard(s)}
+
         ${s.status ? `<p class="status">${escape(s.status)}</p>` : ''}
       </div>
     </div>
@@ -146,8 +150,46 @@ function mealRow(m) {
   `;
 }
 
+function musicCard(s) {
+  const active = PLAYLISTS[s.activePlaylist] ?? PLAYLISTS.walk;
+  const embed = active.embedUrl
+    ? `<iframe
+        class="music-iframe"
+        allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write"
+        sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation"
+        src="${active.embedUrl}"
+        title="${active.title} playlist"></iframe>`
+    : `<div class="music-empty">
+         <p class="empty-title">No ${active.title.toLowerCase()} playlist yet</p>
+         <p class="empty-sub">Open <code>src/playlists.js</code> and paste an Apple Music embed URL.</p>
+       </div>`;
+
+  return `
+    <section class="card music-card span-2">
+      <div class="head">
+        <h3 style="margin:0;">🎧 Soundtrack</h3>
+        <div class="tabs" role="tablist">
+          ${tabBtn('walk', s.activePlaylist === 'walk')}
+          ${tabBtn('run',  s.activePlaylist === 'run')}
+        </div>
+      </div>
+      <p class="music-desc">${active.emoji} ${active.description}</p>
+      <div class="music-embed">${embed}</div>
+    </section>
+  `;
+}
+
+function tabBtn(key, active) {
+  const label = PLAYLISTS[key].title;
+  return `<button class="tab ${active ? 'is-active' : ''}" data-tab="${key}" role="tab" aria-selected="${active}">${label}</button>`;
+}
+
 function wire() {
   $('#theme-toggle')?.addEventListener('click', toggleTheme);
+
+  document.querySelectorAll('[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => setActivePlaylist(btn.getAttribute('data-tab')));
+  });
 
   $('#add-meal')?.addEventListener('click', () => {
     const name = prompt('What did you eat?');
