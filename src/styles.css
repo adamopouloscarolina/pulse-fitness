@@ -403,9 +403,17 @@ button { font: inherit; cursor: pointer; }
   box-shadow: none;
 }
 
-.music-desc {
+.music-tagline {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--text);
+  margin: 6px 0 4px;
+  line-height: 1.25;
+}
+.music-meta {
   color: var(--text-2);
-  font-size: 13px;
+  font-size: 12px;
   margin: 0 0 14px;
 }
 

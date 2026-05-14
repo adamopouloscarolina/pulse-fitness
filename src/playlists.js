@@ -19,14 +19,16 @@ export const PLAYLISTS = {
   walk: {
     title: 'Walk',
     emoji: '🚶',
-    description: 'Steady tempo for daily steps.',
+    tagline: '10k steps before you check your watch.',
+    meta: 'Steady 100–120 BPM · ~45 min',
     // Paste your walking playlist embed URL here:
     embedUrl: '',
   },
   run: {
     title: 'Run',
     emoji: '🏃',
-    description: 'Higher BPM, keep the pace.',
+    tagline: 'Run a 5K like it\'s a 3K.',
+    meta: '150–170 BPM · ~35 min',
     // Paste your running playlist embed URL here:
     embedUrl: '',
   },

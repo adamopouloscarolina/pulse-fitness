@@ -173,7 +173,8 @@ function musicCard(s) {
           ${tabBtn('run',  s.activePlaylist === 'run')}
         </div>
       </div>
-      <p class="music-desc">${active.emoji} ${active.description}</p>
+      <p class="music-tagline">${escape(active.tagline)}</p>
+      <p class="music-meta">${active.emoji} ${escape(active.meta)}</p>
       <div class="music-embed">${embed}</div>
     </section>
   `;
