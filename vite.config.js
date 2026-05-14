@@ -54,6 +54,9 @@ function stepsApiPlugin() {
 }
 
 export default {
+  // GH Pages serves from /<repo-name>/, so build needs that base path.
+  // In dev (npm run dev) base stays / so localhost still works.
+  base: process.env.NODE_ENV === 'production' ? '/pulse-fitness/' : '/',
   plugins: [stepsApiPlugin()],
   server: {
     host: true,  // expose on the LAN so the iPhone can reach us
