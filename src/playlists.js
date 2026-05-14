@@ -1,19 +1,17 @@
-// Apple Music playlists for the Soundtrack card.
+// Playlists for the Soundtrack card.
 //
-// HOW TO ADD YOUR OWN PLAYLISTS
+// Any music service with an embed widget works — Spotify, Tidal,
+// Apple Music, YouTube, SoundCloud. Paste any of the URL formats
+// below into embedUrl and the card will render it.
 //
-//   1. Open the Apple Music app or music.apple.com
-//   2. Find the playlist you want, click "Share" → "Copy Link"
-//   3. The URL looks like:
-//        https://music.apple.com/us/playlist/<name>/pl.<id>
-//   4. Convert it to an embed URL by changing "music.apple.com"
-//      to "embed.music.apple.com":
-//        https://embed.music.apple.com/us/playlist/<name>/pl.<id>
-//   5. Paste it below.
+//   Spotify       https://open.spotify.com/embed/playlist/<id>
+//   Tidal         https://embed.tidal.com/playlists/<id>
+//   Apple Music   https://embed.music.apple.com/<country>/playlist/<name>/<id>
+//   YouTube       https://www.youtube.com/embed/videoseries?list=<id>
+//   SoundCloud    https://w.soundcloud.com/player/?url=<encoded-url>
 //
-// Tip: Apple's own curated playlists work well as starting points —
-// search for "Running" or "Walking" in Apple Music for high-BPM and
-// chill picks respectively.
+// For most services: find the playlist, hit "Share → Copy Link",
+// then swap the domain for the embed domain (see table above).
 
 export const PLAYLISTS = {
   walk: {

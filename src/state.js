@@ -11,6 +11,8 @@ const defaultState = {
   wallet: null,
   mode: 'standalone', // 'standalone' | 'miniapp'
   status: '',
+  profile: null,         // { sex, age, heightCm, weightKg, activity, goal }
+  showOnboarding: false, // true on first load when profile is missing
   goals: {
     calories: 2100,
     steps: 10000,
@@ -40,6 +42,8 @@ const defaultState = {
 };
 
 let state = load() ?? structuredClone(defaultState);
+// Auto-open onboarding on every load until a profile is set.
+if (!state.profile) state.showOnboarding = true;
 const listeners = new Set();
 
 function load() {
@@ -107,6 +111,45 @@ export function removeMeal(id) {
     today: { ...state.today, meals: state.today.meals.filter(m => m.id !== id) },
   });
 }
+
+// --- Profile / goals -----------------------------------------------
+
+const ACTIVITY_FACTORS = {
+  sedentary:    1.2,
+  light:        1.375,
+  moderate:     1.55,
+  active:       1.725,
+  'very-active': 1.9,
+};
+
+const GOAL_MULTIPLIERS = {
+  cut:      0.85,
+  maintain: 1.0,
+  gain:     1.15,
+};
+
+// Mifflin–St Jeor. Returns null if any required field is missing.
+export function computeGoals(p) {
+  if (!p?.age || !p?.heightCm || !p?.weightKg) return null;
+  let bmr = 10 * p.weightKg + 6.25 * p.heightCm - 5 * p.age;
+  bmr += p.sex === 'male' ? 5 : p.sex === 'female' ? -161 : -78; // 'other' = midpoint
+  const factor = ACTIVITY_FACTORS[p.activity] ?? 1.4;
+  const goalMult = GOAL_MULTIPLIERS[p.goal] ?? 1.0;
+  const tdee = bmr * factor * goalMult;
+  return {
+    calories: Math.round(tdee / 10) * 10,
+    protein:  Math.round(p.weightKg * 1.8),
+    steps:    10000,
+  };
+}
+
+export function saveProfile(profile) {
+  const goals = computeGoals(profile) ?? state.goals;
+  update({ profile, goals, showOnboarding: false });
+}
+
+export function openOnboarding()  { update({ showOnboarding: true });  }
+export function closeOnboarding() { update({ showOnboarding: false }); }
 
 // --- Music ---------------------------------------------------------
 

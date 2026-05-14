@@ -371,6 +371,164 @@ button { font: inherit; cursor: pointer; }
 .xs    { font-size: 11px; }
 .sm    { font-size: 12px; }
 
+/* --- Calories edit link ----------------------------------------- */
+
+.kcal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.kcal-head h3 { margin: 0; }
+.edit-link {
+  background: none;
+  border: none;
+  color: var(--purple);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.edit-link:hover { background: var(--purple-50); }
+
+/* --- Onboarding modal ------------------------------------------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 9, 44, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 100;
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 28px 28px 24px;
+  width: 100%;
+  max-width: 460px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  position: relative;
+}
+.modal h2 {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+.modal-sub {
+  color: var(--text-2);
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-2);
+  color: var(--text-2);
+  font-size: 20px;
+  line-height: 1;
+  padding: 0;
+}
+.modal-close:hover { color: var(--text); }
+
+/* Profile form */
+
+.profile-form { display: flex; flex-direction: column; gap: 14px; }
+.profile-form fieldset { border: none; padding: 0; }
+.profile-form legend {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field > span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.field input,
+.field select {
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  transition: border-color 0.15s ease;
+}
+.field input:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--purple);
+  box-shadow: 0 0 0 3px var(--purple-50);
+}
+
+.seg { display: flex; gap: 6px; }
+.seg label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.seg label:has(input:checked) {
+  border-color: var(--purple);
+  background: var(--purple-50);
+  color: var(--purple);
+  font-weight: 600;
+}
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+
+.primary-btn {
+  background: var(--purple);
+  color: #fff;
+  border: none;
+  padding: 13px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 14px;
+  margin-top: 6px;
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+.primary-btn:hover { filter: brightness(1.08); }
+.primary-btn:active { transform: translateY(1px); }
+
+[data-theme="dark"] .modal-close { background: rgba(255,255,255,0.08); }
+[data-theme="dark"] .seg label:has(input:checked) {
+  background: rgba(108, 92, 231, 0.25);
+  color: #fff;
+}
+
 /* --- Music card ------------------------------------------------- */
 
 .music-card .head { margin-bottom: 8px; }

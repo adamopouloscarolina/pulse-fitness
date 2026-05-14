@@ -6,6 +6,7 @@ import {
   getState, getTotals,
   addMeal, removeMeal, joinChallenge,
   setActivePlaylist,
+  saveProfile, openOnboarding, closeOnboarding,
 } from './state.js';
 import { PLAYLISTS } from './playlists.js';
 
@@ -53,7 +54,10 @@ export function render() {
       <div class="grid">
 
         <section class="card kcal-card span-2">
-          <h3>Calories today</h3>
+          <div class="kcal-head">
+            <h3>Calories today</h3>
+            <button class="edit-link" id="edit-profile" aria-label="Edit profile">Edit goal</button>
+          </div>
           <div class="kcal-row">
             <span class="num">${fmt.format(t.kcal)}</span>
             <span class="goal">/ ${fmt.format(g.calories)} kcal</span>
@@ -107,10 +111,76 @@ export function render() {
 
         ${s.status ? `<p class="status">${escape(s.status)}</p>` : ''}
       </div>
+
+      ${s.showOnboarding ? onboardingModal(s) : ''}
     </div>
   `;
 
   wire();
+}
+
+function onboardingModal(s) {
+  const p = s.profile ?? {};
+  const sel = (v, target) => v === target ? 'selected' : '';
+  const chk = (v, target) => v === target ? 'checked' : '';
+  return `
+    <div class="modal-backdrop" id="onboarding-backdrop">
+      <div class="modal" role="dialog" aria-labelledby="onb-title">
+        <button class="modal-close" id="onboarding-close" aria-label="Close">×</button>
+        <h2 id="onb-title">Set up your profile</h2>
+        <p class="modal-sub">We'll calculate a daily calorie target. Numbers stay on your device.</p>
+
+        <form id="profile-form" class="profile-form">
+          <fieldset class="seg-group">
+            <legend>I am</legend>
+            <div class="seg">
+              <label><input type="radio" name="sex" value="female" ${chk(p.sex, 'female')}> Female</label>
+              <label><input type="radio" name="sex" value="male"   ${chk(p.sex, 'male')}> Male</label>
+              <label><input type="radio" name="sex" value="other"  ${chk(p.sex, 'other')}> Other</label>
+            </div>
+          </fieldset>
+
+          <div class="grid-2">
+            <label class="field">
+              <span>Age</span>
+              <input type="number" name="age" min="13" max="100" required value="${p.age ?? ''}" placeholder="32">
+            </label>
+            <label class="field">
+              <span>Height (cm)</span>
+              <input type="number" name="heightCm" min="120" max="230" required value="${p.heightCm ?? ''}" placeholder="170">
+            </label>
+          </div>
+
+          <label class="field">
+            <span>Weight (kg)</span>
+            <input type="number" name="weightKg" min="30" max="250" step="0.1" required value="${p.weightKg ?? ''}" placeholder="65">
+          </label>
+
+          <label class="field">
+            <span>Activity level</span>
+            <select name="activity" required>
+              <option value="sedentary"   ${sel(p.activity, 'sedentary')}>Sedentary — desk job, little exercise</option>
+              <option value="light"       ${sel(p.activity, 'light')}>Light — exercise 1–3×/week</option>
+              <option value="moderate"    ${sel(p.activity ?? 'moderate', 'moderate')}>Moderate — exercise 3–5×/week</option>
+              <option value="active"      ${sel(p.activity, 'active')}>Active — exercise 6–7×/week</option>
+              <option value="very-active" ${sel(p.activity, 'very-active')}>Very active — intense daily training</option>
+            </select>
+          </label>
+
+          <fieldset class="seg-group">
+            <legend>Goal</legend>
+            <div class="seg">
+              <label><input type="radio" name="goal" value="cut"      ${chk(p.goal, 'cut')}> Lose weight</label>
+              <label><input type="radio" name="goal" value="maintain" ${chk(p.goal ?? 'maintain', 'maintain')}> Maintain</label>
+              <label><input type="radio" name="goal" value="gain"     ${chk(p.goal, 'gain')}> Gain</label>
+            </div>
+          </fieldset>
+
+          <button type="submit" class="primary-btn">Calculate my targets</button>
+        </form>
+      </div>
+    </div>
+  `;
 }
 
 function walletPill(s) {
@@ -187,6 +257,23 @@ function tabBtn(key, active) {
 
 function wire() {
   $('#theme-toggle')?.addEventListener('click', toggleTheme);
+  $('#edit-profile')?.addEventListener('click', openOnboarding);
+  $('#onboarding-close')?.addEventListener('click', closeOnboarding);
+  $('#onboarding-backdrop')?.addEventListener('click', (e) => {
+    if (e.target.id === 'onboarding-backdrop') closeOnboarding();
+  });
+  $('#profile-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    saveProfile({
+      sex:      fd.get('sex') || 'other',
+      age:      Number(fd.get('age')),
+      heightCm: Number(fd.get('heightCm')),
+      weightKg: Number(fd.get('weightKg')),
+      activity: fd.get('activity') || 'moderate',
+      goal:     fd.get('goal') || 'maintain',
+    });
+  });
 
   document.querySelectorAll('[data-tab]').forEach(btn => {
     btn.addEventListener('click', () => setActivePlaylist(btn.getAttribute('data-tab')));
