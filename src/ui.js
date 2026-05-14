@@ -7,6 +7,10 @@ import {
   addMeal, removeMeal, joinChallenge,
   setActivePlaylist,
   saveProfile, openOnboarding, closeOnboarding,
+  openMealSearch, closeMealSearch,
+  setMealQuery, setMealResults, setMealSearchError,
+  selectMealProduct, unselectMealProduct,
+  setSelectedGrams, macrosForProduct, confirmSelectedMeal,
 } from './state.js';
 import { PLAYLISTS } from './playlists.js';
 
@@ -113,10 +117,98 @@ export function render() {
       </div>
 
       ${s.showOnboarding ? onboardingModal(s) : ''}
+      ${s.mealSearch.open ? mealSearchModal(s) : ''}
     </div>
   `;
 
   wire();
+}
+
+function mealSearchModal(s) {
+  const ms = s.mealSearch;
+  return `
+    <div class="modal-backdrop" id="meal-search-backdrop">
+      <div class="modal meal-search-modal" role="dialog" aria-labelledby="meal-title">
+        <button class="modal-close" id="meal-search-close" aria-label="Close">×</button>
+        ${ms.selected ? selectedFoodView(ms.selected) : searchFoodView(ms)}
+      </div>
+    </div>
+  `;
+}
+
+function searchFoodView(ms) {
+  return `
+    <h2 id="meal-title">Add a meal</h2>
+    <p class="modal-sub">Search the Open Food Facts database. Free, no signup.</p>
+    <div class="meal-search-bar">
+      <input
+        id="meal-search-input"
+        type="text"
+        placeholder="What did you eat? e.g. banana, oats, yogurt"
+        autocomplete="off"
+        spellcheck="false"
+      />
+    </div>
+    <div class="meal-results">
+      ${ms.loading
+        ? '<p class="muted center pad">Searching…</p>'
+        : ms.error
+          ? `<p class="error pad">${escape(ms.error)}</p>`
+          : ms.results.length
+            ? ms.results.slice(0, 8).map((p, i) => resultRow(p, i)).join('')
+            : ms.query.trim().length >= 2
+              ? '<p class="muted center pad">No matches. Try a more general term.</p>'
+              : '<p class="muted center pad">Start typing to search.</p>'
+      }
+    </div>
+  `;
+}
+
+function resultRow(product, idx) {
+  const n = product.nutriments || {};
+  const kcal = Math.round(n['energy-kcal_100g'] ?? 0);
+  const protein = Math.round(n['proteins_100g'] ?? 0);
+  const name = product.product_name?.trim() || 'Unnamed food';
+  const brand = product.brands?.split(',')[0]?.trim();
+  const thumb = product.image_thumb_url
+    ? `<img src="${product.image_thumb_url}" class="result-thumb" alt="" />`
+    : `<div class="result-thumb result-thumb-empty">🥗</div>`;
+  return `
+    <button class="result-row" data-pick="${idx}">
+      ${thumb}
+      <div class="result-info">
+        <p class="result-name">${escape(name)}</p>
+        <p class="result-meta">${kcal} kcal · ${protein}g protein / 100g${brand ? ` · ${escape(brand)}` : ''}</p>
+      </div>
+    </button>
+  `;
+}
+
+function selectedFoodView(sel) {
+  const { product, grams } = sel;
+  const macros = macrosForProduct(product, grams);
+  const name = product.product_name?.trim() || 'Unnamed food';
+  const brand = product.brands?.split(',')[0]?.trim();
+  const thumb = product.image_thumb_url
+    ? `<img src="${product.image_thumb_url}" class="selected-thumb" alt="" />`
+    : '';
+  return `
+    <button class="back-btn" id="meal-back">← Back to search</button>
+    <h2>${escape(name)}</h2>
+    ${brand ? `<p class="modal-sub">${escape(brand)}</p>` : '<p class="modal-sub">Open Food Facts entry</p>'}
+    ${thumb}
+    <label class="field grams-field">
+      <span>Portion (grams)</span>
+      <input id="grams-input" type="number" min="1" max="2000" step="1" value="${grams}" />
+    </label>
+    <div class="macros-preview">
+      <div class="macro-pill macro-pill-hero"><strong>${macros.kcal}</strong><span>kcal</span></div>
+      <div class="macro-pill">${macros.protein}g P</div>
+      <div class="macro-pill">${macros.carbs}g C</div>
+      <div class="macro-pill">${macros.fat}g F</div>
+    </div>
+    <button class="primary-btn" id="confirm-meal">Add to today</button>
+  `;
 }
 
 function onboardingModal(s) {
@@ -279,18 +371,8 @@ function wire() {
     btn.addEventListener('click', () => setActivePlaylist(btn.getAttribute('data-tab')));
   });
 
-  $('#add-meal')?.addEventListener('click', () => {
-    const name = prompt('What did you eat?');
-    if (!name) return;
-    const kcal = Number(prompt('Calories?'));
-    if (!kcal) return;
-    const protein = Number(prompt('Protein (g)?') || 0);
-    try {
-      addMeal({ name, kcal, protein });
-    } catch (e) {
-      alert(e.message);
-    }
-  });
+  $('#add-meal')?.addEventListener('click', openMealSearch);
+  wireMealSearch();
 
   $('#join-challenge')?.addEventListener('click', () => {
     joinChallenge().catch(() => {});
@@ -302,6 +384,75 @@ function wire() {
       removeMeal(btn.getAttribute('data-remove'));
     });
   });
+}
+
+// --- Meal search wiring -----------------------------------------
+
+let searchTimer;
+
+async function runMealSearch(q) {
+  try {
+    const url = `https://world.openfoodfacts.org/api/v2/search?search_terms=${encodeURIComponent(q)}&fields=product_name,brands,image_thumb_url,nutriments,code&page_size=8`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Search failed');
+    const data = await res.json();
+    const results = (data.products || []).filter(p => (p.nutriments?.['energy-kcal_100g'] ?? 0) > 0);
+    setMealResults(results, q);
+  } catch (err) {
+    setMealSearchError(err.message || 'Search failed');
+  }
+}
+
+function wireMealSearch() {
+  const s = getState();
+  if (!s.mealSearch.open) return;
+
+  $('#meal-search-close')?.addEventListener('click', closeMealSearch);
+  $('#meal-search-backdrop')?.addEventListener('click', (e) => {
+    if (e.target.id === 'meal-search-backdrop') closeMealSearch();
+  });
+
+  // SEARCH VIEW
+  const input = $('#meal-search-input');
+  if (input) {
+    // Sync input value from state without losing cursor position
+    if (document.activeElement?.id !== 'meal-search-input') {
+      input.value = s.mealSearch.query;
+      input.focus();
+      const end = input.value.length;
+      input.setSelectionRange(end, end);
+    }
+
+    input.addEventListener('input', () => {
+      const q = input.value;
+      clearTimeout(searchTimer);
+      setMealQuery(q);
+      if (q.trim().length < 2) return;
+      searchTimer = setTimeout(() => runMealSearch(q), 350);
+    });
+  }
+
+  document.querySelectorAll('[data-pick]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.getAttribute('data-pick'));
+      const product = getState().mealSearch.results[idx];
+      if (product) selectMealProduct(product);
+    });
+  });
+
+  // SELECTED VIEW
+  $('#meal-back')?.addEventListener('click', unselectMealProduct);
+  $('#confirm-meal')?.addEventListener('click', confirmSelectedMeal);
+
+  const grams = $('#grams-input');
+  if (grams) {
+    grams.addEventListener('input', () => setSelectedGrams(grams.value));
+    if (document.activeElement?.id !== 'grams-input') {
+      // first render of selected view → focus the grams input
+      grams.focus();
+      grams.select();
+    }
+  }
 }
 
 // --- Theme -------------------------------------------------------

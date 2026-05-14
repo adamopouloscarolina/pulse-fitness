@@ -7,12 +7,22 @@ import { submitTransactions } from './bridge.js';
 
 const STORAGE_KEY = 'circles-fitness-state-v1';
 
+const emptyMealSearch = {
+  open: false,
+  query: '',
+  results: [],
+  loading: false,
+  error: null,
+  selected: null, // { product, grams }
+};
+
 const defaultState = {
   wallet: null,
   mode: 'standalone', // 'standalone' | 'miniapp'
   status: '',
   profile: null,         // { sex, age, heightCm, weightKg, activity, goal }
   showOnboarding: false, // true on first load when profile is missing
+  mealSearch: { ...emptyMealSearch },
   goals: {
     calories: 2100,
     steps: 10000,
@@ -41,7 +51,12 @@ const defaultState = {
   activePlaylist: 'walk', // 'walk' | 'run'
 };
 
-let state = load() ?? structuredClone(defaultState);
+// Merge any persisted state with defaults so newly-added fields
+// don't break older saves.
+const loaded = load();
+let state = loaded
+  ? { ...structuredClone(defaultState), ...loaded, mealSearch: { ...emptyMealSearch } }
+  : structuredClone(defaultState);
 // Auto-open onboarding on every load until a profile is set.
 if (!state.profile) state.showOnboarding = true;
 const listeners = new Set();
@@ -150,6 +165,62 @@ export function saveProfile(profile) {
 
 export function openOnboarding()  { update({ showOnboarding: true });  }
 export function closeOnboarding() { update({ showOnboarding: false }); }
+
+// --- Meal search (Open Food Facts) --------------------------------
+
+export function openMealSearch()  { update({ mealSearch: { ...emptyMealSearch, open: true }}); }
+export function closeMealSearch() { update({ mealSearch: { ...emptyMealSearch, open: false }}); }
+
+export function setMealQuery(query) {
+  update({ mealSearch: { ...state.mealSearch, query, loading: query.trim().length >= 2, error: null }});
+}
+
+export function setMealResults(results, forQuery) {
+  if (forQuery !== state.mealSearch.query) return; // stale response
+  update({ mealSearch: { ...state.mealSearch, results, loading: false, error: null }});
+}
+
+export function setMealSearchError(error) {
+  update({ mealSearch: { ...state.mealSearch, loading: false, error }});
+}
+
+export function selectMealProduct(product) {
+  update({ mealSearch: { ...state.mealSearch, selected: { product, grams: 100 }}});
+}
+
+export function unselectMealProduct() {
+  update({ mealSearch: { ...state.mealSearch, selected: null }});
+}
+
+export function setSelectedGrams(grams) {
+  const sel = state.mealSearch.selected;
+  if (!sel) return;
+  const clean = Math.max(1, Math.min(2000, Number(grams) || 0));
+  update({ mealSearch: { ...state.mealSearch, selected: { ...sel, grams: clean }}});
+}
+
+export function macrosForProduct(product, grams) {
+  const n = product?.nutriments || {};
+  const f = (Number(grams) || 0) / 100;
+  return {
+    kcal:    Math.round((n['energy-kcal_100g']   ?? 0) * f),
+    protein: Math.round((n['proteins_100g']      ?? 0) * f),
+    carbs:   Math.round((n['carbohydrates_100g'] ?? 0) * f),
+    fat:     Math.round((n['fat_100g']           ?? 0) * f),
+  };
+}
+
+export function confirmSelectedMeal() {
+  const sel = state.mealSearch.selected;
+  if (!sel) return;
+  const { product, grams } = sel;
+  const macros = macrosForProduct(product, grams);
+  const baseName = product.product_name?.trim() || 'Untracked food';
+  const brand = product.brands?.split(',')[0]?.trim();
+  const name = brand ? `${baseName} (${brand})` : baseName;
+  addMeal({ name, ...macros });
+  closeMealSearch();
+}
 
 // --- Music ---------------------------------------------------------
 

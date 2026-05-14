@@ -529,6 +529,134 @@ button { font: inherit; cursor: pointer; }
   color: #fff;
 }
 
+/* --- Meal search ----------------------------------------------- */
+
+.meal-search-modal { max-width: 520px; }
+.meal-search-bar { margin: 6px 0 14px; }
+.meal-search-bar input {
+  width: 100%;
+  font: inherit;
+  font-size: 15px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.meal-search-bar input:focus {
+  outline: none;
+  border-color: var(--purple);
+  box-shadow: 0 0 0 3px var(--purple-50);
+}
+
+.meal-results {
+  max-height: 360px;
+  overflow-y: auto;
+  margin: 0 -4px;
+}
+.meal-results .pad { padding: 24px 8px; }
+.meal-results .error { color: var(--coral); }
+
+.result-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  background: none;
+  border: none;
+  border-radius: 10px;
+  text-align: left;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.result-row:hover { background: var(--bg-2); }
+
+.result-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--bg-2);
+  flex-shrink: 0;
+}
+.result-thumb-empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+.result-info { min-width: 0; flex: 1; }
+.result-name {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.result-meta {
+  font-size: 12px;
+  color: var(--text-2);
+  margin-top: 2px;
+}
+
+/* Selected view */
+
+.back-btn {
+  background: none;
+  border: none;
+  color: var(--purple);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 0 12px;
+  cursor: pointer;
+}
+.back-btn:hover { color: var(--purple-900); }
+[data-theme="dark"] .back-btn:hover { color: var(--purple-100); }
+
+.selected-thumb {
+  width: 84px;
+  height: 84px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--bg-2);
+  margin: 4px 0 14px;
+}
+
+.grams-field { margin: 4px 0 14px; }
+.grams-field input { font-size: 16px; }
+
+.macros-preview {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.macro-pill {
+  background: var(--bg-2);
+  color: var(--text-2);
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.macro-pill-hero {
+  background: var(--purple-50);
+  color: var(--purple);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 13px;
+}
+.macro-pill-hero strong {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+[data-theme="dark"] .macro-pill-hero { color: #fff; background: rgba(108, 92, 231, 0.30); }
+
 /* --- Music card ------------------------------------------------- */
 
 .music-card .head { margin-bottom: 8px; }
