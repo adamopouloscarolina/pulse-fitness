@@ -77,6 +77,8 @@ const defaultState = {
   },
   // Modal for configuring a new challenge.
   showChallengeConfig: false,
+  // Top-level view: 'dashboard' | 'settings'
+  view: 'dashboard',
   // On-chain integration state. Set during initChain() at boot.
   chain: {
     alive:    false,
@@ -214,6 +216,17 @@ export function saveProfile(profile) {
 
 export function openOnboarding()  { update({ showOnboarding: true });  }
 export function closeOnboarding() { update({ showOnboarding: false }); }
+
+export function setView(view) {
+  if (view !== 'dashboard' && view !== 'settings') return;
+  update({ view });
+}
+
+export function resetAllData() {
+  // Wipes everything except the chain liveness probe result. Useful for demo.
+  localStorage.removeItem('circles-fitness-state-v1');
+  location.reload();
+}
 
 // --- iPhone Health sync (via Apple Shortcut bridge) ----------------
 

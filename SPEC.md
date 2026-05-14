@@ -169,6 +169,23 @@ Steps 1–3 are all client-side and ship this week. Steps 4–6 need a contract,
 
 ---
 
+## Confirmed facts from the Gnosis team (2026-05-14)
+
+- **No single CRC contract address.** Every human avatar mints their own personal CRC token. Groups have their own token addresses. There's no `IERC20(CRC)` to call.
+- **Standards.** Use **ERC-1155** for most cases (the team's explicit recommendation). Group CRC is the simpler ERC-20 fungible wrapper — best fit for our staking model.
+- **No Chiado sandbox.** The Circles Chiado testnet was sunsetted. **Mainnet only.** Implications:
+  - Use `anvil --fork-url https://rpc.gnosischain.com` for local development against real mainnet state.
+  - Any public deploy is real-money mainnet → audit required.
+- **Miniapp registration.** Contribution guide: https://docs.aboutcircles.com/miniapps/contribute-mini-apps
+- **No URL constraints** for internal team members. External miniapps should pass a security review.
+
+## Revised v1 path (post-team-answers)
+
+1. **Stakes are group CRC, not personal CRC.** Pulse creates (or reuses) a Circles group; every member joins the group; the group's wrapped ERC-20 is what gets staked. One token type, simple math.
+2. **Local dev uses Anvil mainnet fork.** Same chain ID and state as Gnosis mainnet, but local + fake gas. Lets us test against the real Circles Hub and group contracts without spending real CRC.
+3. **Production deploy = direct to Gnosis mainnet with audit.** No middle step. Realistic timeline 1–3 months from now (audit is the bottleneck).
+4. **Pulse hosted at a public HTTPS URL** (Vercel or Cloudflare), registered via the contribution guide as a miniapp inside the Gnosis app.
+
 ## Open questions
 
 - Does `@aboutcircles/miniapp-sdk` expose any platform-level permissions in iOS hosts? If yes, native HealthKit access becomes possible without our own iOS app.

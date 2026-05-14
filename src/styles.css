@@ -146,6 +146,113 @@ button { font: inherit; cursor: pointer; }
 [data-theme="dark"] .theme-toggle .sun { display: inline; }
 [data-theme="dark"] .theme-toggle .moon { display: none; }
 
+.settings-toggle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.settings-toggle:hover { transform: rotate(60deg); }
+
+.brand-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+/* --- Settings page --------------------------------------------- */
+
+.settings-shell {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.settings-head { margin-bottom: 4px; }
+.settings-head h1 {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-top: 8px;
+}
+.settings-head .back-btn {
+  padding: 0;
+}
+
+.settings-card h3 {
+  margin: 0 0 12px;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.settings-row-text { flex: 1; min-width: 0; }
+.settings-primary {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+.settings-secondary {
+  font-size: 12px;
+  color: var(--text-2);
+  margin-top: 2px;
+}
+.settings-secondary code,
+.settings-note code {
+  background: var(--bg-2);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
+.settings-note {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.avatar-lg {
+  width: 40px;
+  height: 40px;
+  font-size: 14px;
+}
+.service-icon {
+  font-size: 22px;
+  width: 40px;
+  text-align: center;
+}
+.settings-card.danger {
+  border-color: rgba(216, 90, 48, 0.25);
+}
+.settings-card.danger h3 {
+  color: var(--coral);
+}
+.danger-btn {
+  background: var(--coral);
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 13px;
+  margin-top: 12px;
+}
+.danger-btn:hover { filter: brightness(1.08); }
+
 .greeting-row {
   display: flex;
   align-items: baseline;

@@ -15,6 +15,7 @@ import {
   createChallenge, stakeAndJoin,
   advanceDay, addYourSteps, endChallengeNow,
   claimWinnings, resetToIdle,
+  setView, resetAllData,
 } from './state.js';
 import { computeRanking, computePayouts, DEFAULT_CONFIG } from './demo.js';
 import { PLAYLISTS } from './playlists.js';
@@ -37,72 +38,25 @@ export function render() {
     <div class="shell">
 
       <header class="topbar">
-        <div class="brand">
+        <button class="brand brand-link" id="go-home" aria-label="Home">
           <span class="brand-mark"></span>
           <div class="brand-text">
             <span class="brand-name">Pulse</span>
             <span class="brand-sub">Circles Fitness Club</span>
           </div>
-        </div>
+        </button>
         <div class="topbar-actions">
           ${chainPill(s)}
           <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
             <span class="theme-icon sun">☀</span>
             <span class="theme-icon moon">☾</span>
           </button>
+          <button class="settings-toggle" id="go-settings" aria-label="Settings">⚙</button>
           ${walletPill(s)}
         </div>
       </header>
 
-      <div class="greeting-row">
-        <div>
-          <p class="date">${dateStr}</p>
-          <h1 class="greeting">Bom dia</h1>
-        </div>
-      </div>
-
-      <div class="grid">
-
-        <section class="card kcal-card span-2">
-          <div class="kcal-head">
-            <h3>Calories today</h3>
-            <button class="edit-link" id="edit-profile" aria-label="Edit profile">Edit goal</button>
-          </div>
-          <div class="kcal-row">
-            <span class="num">${fmt.format(t.kcal)}</span>
-            <span class="goal">/ ${fmt.format(g.calories)} kcal</span>
-          </div>
-          <div class="macros">
-            ${macroBar('Protein', t.protein, g.protein, 'g', 'mint')}
-            ${macroBar('Carbs',   t.carbs,   260,        'g', 'amber')}
-            ${macroBar('Fat',     t.fat,     70,         'g', 'coral')}
-          </div>
-        </section>
-
-        ${challengeCard(s)}
-
-        ${stepsCard(s, g)}
-
-        <section class="card">
-          <h3>Last session</h3>
-          <p class="stat-num">${lastWorkout?.avgHr ?? '—'}<span class="muted sm"> bpm</span></p>
-          <p class="stat-sub">${lastWorkout ? `${lastWorkout.kind} · ${lastWorkout.durationMin} min` : 'No workout yet'}</p>
-        </section>
-
-        <section class="card meals-card span-2">
-          <div class="head">
-            <h3 style="margin:0;">Today's meals</h3>
-            <button class="add-btn" id="add-meal">+ Add meal</button>
-          </div>
-          <div class="meals-list">
-            ${s.today.meals.map(mealRow).join('') || '<p class="empty">No meals logged yet.</p>'}
-          </div>
-        </section>
-
-        ${musicCard(s)}
-
-        ${s.status ? `<p class="status">${escape(s.status)}</p>` : ''}
-      </div>
+      ${s.view === 'settings' ? settingsView(s) : dashboardView(s, t, g, lastWorkout, dateStr)}
 
       ${s.showOnboarding ? onboardingModal(s) : ''}
       ${s.showChallengeConfig ? challengeConfigModal(s) : ''}
@@ -111,6 +65,138 @@ export function render() {
   `;
 
   wire();
+}
+
+function dashboardView(s, t, g, lastWorkout, dateStr) {
+  return `
+    <div class="greeting-row">
+      <div>
+        <p class="date">${dateStr}</p>
+        <h1 class="greeting">Bom dia</h1>
+      </div>
+    </div>
+
+    <div class="grid">
+      <section class="card kcal-card span-2">
+        <div class="kcal-head">
+          <h3>Calories today</h3>
+          <button class="edit-link" id="edit-profile" aria-label="Edit profile">Edit goal</button>
+        </div>
+        <div class="kcal-row">
+          <span class="num">${fmt.format(t.kcal)}</span>
+          <span class="goal">/ ${fmt.format(g.calories)} kcal</span>
+        </div>
+        <div class="macros">
+          ${macroBar('Protein', t.protein, g.protein, 'g', 'mint')}
+          ${macroBar('Carbs',   t.carbs,   260,        'g', 'amber')}
+          ${macroBar('Fat',     t.fat,     70,         'g', 'coral')}
+        </div>
+      </section>
+
+      ${challengeCard(s)}
+
+      ${stepsCard(s, g)}
+
+      <section class="card">
+        <h3>Last session</h3>
+        <p class="stat-num">${lastWorkout?.avgHr ?? '—'}<span class="muted sm"> bpm</span></p>
+        <p class="stat-sub">${lastWorkout ? `${lastWorkout.kind} · ${lastWorkout.durationMin} min` : 'No workout yet'}</p>
+      </section>
+
+      <section class="card meals-card span-2">
+        <div class="head">
+          <h3 style="margin:0;">Today's meals</h3>
+          <button class="add-btn" id="add-meal">+ Add meal</button>
+        </div>
+        <div class="meals-list">
+          ${s.today.meals.map(mealRow).join('') || '<p class="empty">No meals logged yet.</p>'}
+        </div>
+      </section>
+
+      ${musicCard(s)}
+
+      ${s.status ? `<p class="status">${escape(s.status)}</p>` : ''}
+    </div>
+  `;
+}
+
+function settingsView(s) {
+  const p = s.profile;
+  const profileLine = p
+    ? `${p.age}y · ${p.heightCm}cm · ${p.weightKg}kg · ${cap(p.activity || 'moderate')} · ${cap(p.goal || 'maintain')}`
+    : 'Not set — tap Edit to add your stats.';
+  const synced = s.health?.steps;
+  const syncLine = synced != null
+    ? `Last sync: ${fmt.format(synced)} steps · ${timeAgo(s.health.syncedAt)}`
+    : 'Not connected yet';
+
+  return `
+    <div class="settings-shell">
+      <div class="settings-head">
+        <button class="back-btn" id="back-to-dashboard">← Back to dashboard</button>
+        <h1>Settings</h1>
+      </div>
+
+      <section class="card settings-card">
+        <h3>Profile</h3>
+        <div class="settings-row">
+          <span class="avatar avatar-lg" style="background:var(--purple)">${(p?.sex || 'YO').slice(0,1).toUpperCase()}</span>
+          <div class="settings-row-text">
+            <p class="settings-primary">${p?.sex ? cap(p.sex) : 'No sex set'}</p>
+            <p class="settings-secondary">${profileLine}</p>
+          </div>
+          <button class="edit-link" id="settings-edit-profile">Edit</button>
+        </div>
+      </section>
+
+      <section class="card settings-card">
+        <h3>Wallet & balance</h3>
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <p class="settings-primary">${s.wallet ? `${s.wallet.slice(0,6)}…${s.wallet.slice(-4)}` : 'Standalone (no wallet connected)'}</p>
+            <p class="settings-secondary">
+              Available: <strong>${s.balance.available} CRC</strong> · Locked: <strong>${s.balance.locked} CRC</strong>
+            </p>
+          </div>
+        </div>
+        ${!s.wallet ? `<p class="settings-note">Real wallet connection requires running Pulse inside the Gnosis app as a Circles miniapp. Currently using local Anvil dev wallets.</p>` : ''}
+      </section>
+
+      <section class="card settings-card">
+        <h3>On-chain</h3>
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <p class="settings-primary">${s.chain?.alive ? 'Connected to local Anvil' : 'Not connected'}</p>
+            <p class="settings-secondary">Contract: <code>${s.chain?.address}</code></p>
+          </div>
+          <span class="pill ${s.chain?.alive ? 'mint' : 'gray'}">
+            <span class="dot"></span>${s.chain?.alive ? 'live' : 'offline'}
+          </span>
+        </div>
+      </section>
+
+      <section class="card settings-card">
+        <h3>Connected services</h3>
+        <div class="settings-row">
+          <span class="service-icon">📱</span>
+          <div class="settings-row-text">
+            <p class="settings-primary">iPhone Health (Apple Shortcut)</p>
+            <p class="settings-secondary">${syncLine}</p>
+          </div>
+          <span class="pill ${synced != null ? 'mint' : 'gray'}">
+            <span class="dot"></span>${synced != null ? 'synced' : 'idle'}
+          </span>
+        </div>
+        <p class="settings-note">Set up: see <code>SHORTCUT_SETUP.md</code> in the repo.</p>
+      </section>
+
+      <section class="card settings-card danger">
+        <h3>Reset</h3>
+        <p class="settings-secondary">Clears your profile, balance, and any in-flight challenge state from this browser. Doesn't touch on-chain data.</p>
+        <button class="danger-btn" id="reset-all">Reset all local data</button>
+      </section>
+    </div>
+  `;
 }
 
 // --- Steps card with iPhone Health sync indicator ------------------
@@ -604,6 +690,13 @@ function tabBtn(key, active) {
 
 function wire() {
   $('#theme-toggle')?.addEventListener('click', toggleTheme);
+  $('#go-home')?.addEventListener('click', () => setView('dashboard'));
+  $('#go-settings')?.addEventListener('click', () => setView('settings'));
+  $('#back-to-dashboard')?.addEventListener('click', () => setView('dashboard'));
+  $('#settings-edit-profile')?.addEventListener('click', openOnboarding);
+  $('#reset-all')?.addEventListener('click', () => {
+    if (confirm('Clear all local Pulse data? On-chain state is unaffected.')) resetAllData();
+  });
   $('#edit-profile')?.addEventListener('click', openOnboarding);
   $('#onboarding-close')?.addEventListener('click', closeOnboarding);
   $('#onboarding-backdrop')?.addEventListener('click', (e) => {
