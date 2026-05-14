@@ -9,8 +9,8 @@
 // because they only work on local Anvil and have zero value.
 
 import {
-  createPublicClient, createWalletClient, http, parseEther,
-  formatEther, defineChain,
+  createPublicClient, createWalletClient, http,
+  defineChain,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
@@ -78,18 +78,17 @@ export async function isChainAlive() {
 }
 
 // ---- Reads --------------------------------------------------------
-
-export async function getEthBalance(who = 'you') {
-  const bal = await publicClient.getBalance({ address: accounts[who].address });
-  return Number(formatEther(bal));
-}
+//
+// All stakes & payouts are denominated as plain integer "CRC units"
+// (1 unit = 1 wei on chain — tiny on-chain value, but conceptually a
+// whole CRC for the UI). So `withdrawable` returns 100 means "100 CRC".
 
 export async function getWithdrawable(challengeId, who) {
   const w = await publicClient.readContract({
     address: CHALLENGE_ADDRESS, abi: ABI, functionName: 'withdrawable',
     args: [BigInt(challengeId), accounts[who].address],
   });
-  return Number(formatEther(w));
+  return Number(w);
 }
 
 // ---- Writes -------------------------------------------------------
@@ -98,20 +97,19 @@ export async function createChallengeOnChain({ stakeX, stakeP, durationDays }) {
   const members = [accounts.you.address, accounts.alex.address, accounts.maria.address, accounts.joao.address];
   const hash = await walletClients.you.writeContract({
     address: CHALLENGE_ADDRESS, abi: ABI, functionName: 'createChallenge',
-    args: [members, parseEther(String(stakeX)), parseEther(String(stakeP)), BigInt(durationDays * 86400)],
+    args: [members, BigInt(stakeX), BigInt(stakeP), BigInt(durationDays * 86400)],
   });
   await publicClient.waitForTransactionReceipt({ hash });
-  // Read back the just-incremented id
   const next = await publicClient.readContract({
     address: CHALLENGE_ADDRESS, abi: ABI, functionName: 'nextId',
   });
   return Number(next) - 1;
 }
 
-export async function joinChallengeOnChain(challengeId, who, totalStakeEth) {
+export async function joinChallengeOnChain(challengeId, who, totalStake) {
   const hash = await walletClients[who].writeContract({
     address: CHALLENGE_ADDRESS, abi: ABI, functionName: 'join',
-    args: [BigInt(challengeId)], value: parseEther(String(totalStakeEth)),
+    args: [BigInt(challengeId)], value: BigInt(totalStake),
   });
   await publicClient.waitForTransactionReceipt({ hash });
 }

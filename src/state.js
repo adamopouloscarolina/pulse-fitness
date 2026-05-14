@@ -15,7 +15,6 @@ import {
 } from './demo.js';
 import {
   isChainAlive,
-  getEthBalance,
   createChallengeOnChain,
   joinChallengeOnChain,
   submitStepsOnChain,
@@ -299,17 +298,17 @@ export function getTotals() {
 export function openChallengeConfig()  { update({ showChallengeConfig: true });  }
 export function closeChallengeConfig() { update({ showChallengeConfig: false }); }
 
-// One-time boot: probe the chain, read your starting balance.
+// One-time boot: probe the chain. The "balance" is a synthetic CRC
+// counter — the chain holds value in wei, but for UX we just track
+// "you started with 200 CRC, after stakes/wins it became Y".
 export async function initChain() {
   const alive = await isChainAlive();
-  if (!alive) {
-    update({ chain: { ...state.chain, alive: false } });
-    return;
-  }
-  const eth = await getEthBalance('you');
+  // On every chain-connected boot, reset the synthetic balance so the
+  // demo always starts at a sane round number.
+  const reset = { available: 200, locked: 0 };
   update({
-    chain:   { ...state.chain, alive: true },
-    balance: { available: Math.round(eth), locked: 0 },
+    chain:   { ...state.chain, alive },
+    balance: alive ? reset : state.balance,
   });
 }
 
@@ -366,10 +365,9 @@ export async function stakeAndJoin() {
     }
     const activated = activateChallenge(c);
     activated.onChainId = c.onChainId;
-    const eth = await getEthBalance('you');
     update({
       challenge: activated,
-      balance:   { available: Math.round(eth), locked: required },
+      balance:   { available: state.balance.available - required, locked: required },
     });
     setStatus('Locked in.');
   });
@@ -436,18 +434,17 @@ export async function claimWinnings() {
 
   await withPendingTx(async () => {
     setStatus('Withdrawing winnings on chain…');
+    // Capture your withdrawable first so we know what to add to display.
+    const yourOwed = await getWithdrawable(c.onChainId, 'you');
     // Anyone with a positive withdrawable can call. For demo we have
-    // all keys, so claim for all members so the contract is clean.
+    // all 4 keys, so claim for all members so the contract is clean.
     for (const who of ['you', 'alex', 'maria', 'joao']) {
       const owed = await getWithdrawable(c.onChainId, who);
-      if (owed > 0) {
-        await withdrawOnChain(c.onChainId, who);
-      }
+      if (owed > 0) await withdrawOnChain(c.onChainId, who);
     }
-    const eth = await getEthBalance('you');
     update({
       challenge: { ...c, settlement: { ...c.settlement, claimed: true }},
-      balance:   { available: Math.round(eth), locked: 0 },
+      balance:   { available: state.balance.available + yourOwed, locked: 0 },
     });
     setStatus('Claimed.');
   });
