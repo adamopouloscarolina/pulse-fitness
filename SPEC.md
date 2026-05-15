@@ -1,4 +1,4 @@
-# Pulse · Circles Fitness Club — v1 Spec
+# BPM · Bet · Play · Move — v1 Spec
 
 A fitness mini-app that runs in the Circles host, monetizes via CRC, and uses the trust graph for what no other fitness app can do: peer-verified progress.
 

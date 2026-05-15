@@ -1,4 +1,6 @@
-# Pulse — Circles Fitness Club (embedded mini-app)
+# BPM — Bet · Play · Move (Circles miniapp)
+
+> earn the beat
 
 A starter scaffold for a fitness mini-app that runs inside the Circles
 host and uses CRC for group challenges.

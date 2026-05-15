@@ -41,8 +41,8 @@ export function render() {
         <button class="brand brand-link" id="go-home" aria-label="Home">
           <span class="brand-mark"></span>
           <div class="brand-text">
-            <span class="brand-name">Pulse</span>
-            <span class="brand-sub">Circles Fitness Club</span>
+            <span class="brand-name">BPM</span>
+            <span class="brand-sub">Bet · Play · Move</span>
           </div>
         </button>
         <div class="topbar-actions">
@@ -73,6 +73,7 @@ function dashboardView(s, t, g, lastWorkout, dateStr) {
       <div>
         <p class="date">${dateStr}</p>
         <h1 class="greeting">Bom dia</h1>
+        <p class="motto">earn the beat</p>
       </div>
     </div>
 

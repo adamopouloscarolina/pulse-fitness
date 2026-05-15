@@ -261,6 +261,15 @@ button { font: inherit; cursor: pointer; }
 }
 .greeting { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; }
 .date { color: var(--text-2); font-size: 13px; }
+.motto {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--purple);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+[data-theme="dark"] .motto { color: #c9c0ff; }
 
 /* --- Grid ------------------------------------------------------- */
 

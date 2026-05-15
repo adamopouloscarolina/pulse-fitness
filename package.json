@@ -1,6 +1,6 @@
 {
-  "name": "pulse",
-  "description": "Pulse — Circles Fitness Club",
+  "name": "bpm",
+  "description": "BPM — Bet · Play · Move. Group fitness staking on Circles.",
   "private": true,
   "version": "0.1.0",
   "type": "module",
