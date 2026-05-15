@@ -4,7 +4,7 @@ A fitness mini-app that runs in the Circles host, monetizes via CRC, and uses th
 
 ## What we're building
 
-A desktop-first (mobile later) web app where friends form small groups, stake CRC against a weekly fitness goal, and pay out by rank — with a "wooden spoon" penalty for the worst performer. Food is logged via search (no manual calorie typing), steps come from iPhone Health via an Apple Shortcut bridge, and challenge verification starts honor-based with a dispute window.
+A desktop-first (mobile later) web app where friends form small groups, stake CRC against a weekly fitness goal, and pay out by rank — with an "anchor" penalty for the worst performer. Food is logged via search (no manual calorie typing), steps come from iPhone Health via an Apple Shortcut bridge, and challenge verification starts honor-based with a dispute window.
 
 The app does not mint CRC. It routes flows that already exist: users' UBI accrual and (later) sponsor pools.
 
@@ -87,13 +87,13 @@ We don't read HealthKit from a browser. We publish a one-tap iOS Shortcut users 
 v2: Strava OAuth as a proxy for serious athletes.
 v3: Companion iOS app if it becomes a bottleneck.
 
-### 3. Weekly peer challenge — wooden-spoon payout
+### 3. Weekly peer challenge — anchor payout
 
 Group of 4–8 friends. 7-day cycle. Equal stakes.
 
 **Stake structure** — every player deposits two buckets:
 - `X` = the "to-win" stake (e.g., 20 CRC)
-- `P` = the "wooden-spoon" deposit (e.g., 10 CRC)
+- `P` = the "anchor" deposit (e.g., 10 CRC)
 
 Total locked per player: `X + P`.
 
@@ -135,7 +135,7 @@ Nutritionists/trainers join via the trust graph. Clients pay per session in pers
 | Source | Mechanism | When |
 |---|---|---|
 | **User UBI** | Players stake their already-accruing personal CRC | v1 |
-| **Forfeits among peers** | Wooden-spoon redistributes from last to first | v1 |
+| **Forfeits among peers** | Anchor penalty redistributes from last to first | v1 |
 | **Sponsor pools** | Brands seed group-CRC into the pot; app takes 10–15% | v2 |
 | **DAO matching** | Treasuries seed a multiplier pool for active humans | v3 |
 
@@ -161,7 +161,7 @@ The app doesn't print CRC and never will. It moves CRC that's already minted.
 1. **Desktop layout + lavender restyle.** Kill the phone frame, three-column grid, new palette wired into `:root`. No new functionality. *Verifiable: page looks like the layout above on a wide screen.*
 2. **Open Food Facts food search.** Replace `prompt()` flow with inline search + portion picker. *Verifiable: type "banana", get matches, add 150g, kcal auto-fills.*
 3. **Mifflin–St Jeor onboarding.** One-screen form (age, sex, weight, height, activity level) sets `goals.calories` dynamically. *Verifiable: goal updates after onboarding.*
-4. **Wooden-spoon challenge contract.** Solidity on Gnosis Chain testnet. Two-bucket stake/payout as specced. *Verifiable: 4 test wallets, end-of-week settlement matches the table.*
+4. **Anchor challenge contract.** Solidity on Gnosis Chain testnet. Two-bucket stake/payout as specced. *Verifiable: 4 test wallets, end-of-week settlement matches the table.*
 5. **Apple Shortcut bridge.** Publish the Shortcut + a tiny `/steps` endpoint. *Verifiable: tap the Shortcut on iPhone, steps update on desktop.*
 6. **Group roster + dispute UI.** Show who's joined, who's in front/behind, the dispute button. *Verifiable: end-to-end weekly cycle with 4 humans.*
 

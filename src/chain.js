@@ -1,4 +1,4 @@
-// On-chain client for the WoodenSpoonChallenge contract.
+// On-chain client for the AnchorChallenge contract.
 //
 // Talks to a local Anvil node at http://127.0.0.1:8545. Falls back
 // silently to the mock state machine if Anvil isn't reachable —
@@ -14,7 +14,7 @@ import {
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
-export const CHALLENGE_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+export const CHALLENGE_ADDRESS = '0x68B1D87F95878fE05B998F19b66F4baba5De1aed';
 
 const anvil = defineChain({
   id: 31337,

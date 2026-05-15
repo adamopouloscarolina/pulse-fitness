@@ -317,9 +317,9 @@ function challengeActive(s, c) {
         </div>
         <div class="proj-extremes">
           <span>Best (1st): <strong class="pos">+${bestCase}</strong></span>
-          <span>Worst (🥄 last): <strong class="neg">${worstCase}</strong></span>
+          <span>Worst (⚓ last): <strong class="neg">${worstCase}</strong></span>
         </div>
-        <p class="spoon-legend">🥄 = wooden spoon. Last place pays an extra ${c.config.stakeP} CRC on top of their stake.</p>
+        <p class="spoon-legend">⚓ = anchor. Last place pays an extra ${c.config.stakeP} CRC on top of their stake.</p>
       </div>
       <details class="demo-controls">
         <summary>Demo controls</summary>
@@ -363,7 +363,7 @@ function challengeConfigModal(s) {
       <div class="modal" role="dialog">
         <button class="modal-close" id="challenge-config-close">×</button>
         <h2>Start a challenge</h2>
-        <p class="modal-sub">You + 3 friends compete for a week. Top score takes the pool. Last place pays a wooden-spoon penalty.</p>
+        <p class="modal-sub">You + 3 friends compete for a week. Top score takes the pool. Last place pays an anchor penalty.</p>
 
         <form id="challenge-config-form" class="profile-form">
           <fieldset class="seg-group">
@@ -390,7 +390,7 @@ function challengeConfigModal(s) {
               <input type="number" name="stakeX" value="${c.stakeX}" min="1" max="500" />
             </label>
             <label class="field">
-              <span>Wooden-spoon (CRC)</span>
+              <span>Anchor penalty (CRC)</span>
               <input type="number" name="stakeP" value="${c.stakeP}" min="0" max="500" />
             </label>
           </div>
@@ -452,7 +452,7 @@ const goalLabel = (g) => ({
 }[g] ?? g);
 
 const ordinal = (n) => ['1st','2nd','3rd','4th','5th','6th','7th','8th'][n - 1] ?? `${n}th`;
-const rankEmoji = (n) => ({1:'🥇',2:'🥈',3:'🥉'}[n] ?? (n === 4 ? '🥄' : `#${n}`));
+const rankEmoji = (n) => ({1:'🥇',2:'🥈',3:'🥉'}[n] ?? (n === 4 ? '⚓' : `#${n}`));
 const signed = (n) => (n > 0 ? `+${n}` : `${n}`);
 
 function mealSearchModal(s) {

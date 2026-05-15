@@ -2,10 +2,10 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import {WoodenSpoonChallenge} from "../src/WoodenSpoonChallenge.sol";
+import {AnchorChallenge} from "../src/AnchorChallenge.sol";
 
-contract WoodenSpoonChallengeTest is Test {
-    WoodenSpoonChallenge ch;
+contract AnchorChallengeTest is Test {
+    AnchorChallenge ch;
     address you    = address(0xAA);
     address alex   = address(0xBB);
     address maria  = address(0xCC);
@@ -16,7 +16,7 @@ contract WoodenSpoonChallengeTest is Test {
     uint64  constant DURATION = 1 days;
 
     function setUp() public {
-        ch = new WoodenSpoonChallenge();
+        ch = new AnchorChallenge();
         vm.deal(you,   100 ether);
         vm.deal(alex,  100 ether);
         vm.deal(maria, 100 ether);
@@ -39,7 +39,7 @@ contract WoodenSpoonChallengeTest is Test {
         vm.prank(joao);  ch.join{value: X + P}(id);
     }
 
-    function testWoodenSpoonMath() public {
+    function testAnchorMath() public {
         uint256 id = _create();
         _allJoin(id);
 

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-/// @title Wooden-Spoon Challenge
+/// @title Anchor Challenge
 /// @notice Holds CRC (or native xDAI on Chiado) stakes for a group fitness
 ///         challenge. The participant with the highest reported steps takes
-///         the pot; the participant with the lowest pays a "wooden spoon"
+///         the pot; the participant with the lowest pays an "anchor"
 ///         penalty on top of their stake.
 ///
-/// Payout math, with N joined members, to-win stake X, wooden-spoon P:
+/// Payout math, with N joined members, to-win stake X, anchor penalty P:
 ///   Winner  → receives N*X + 2P  (net: +(N-1)X + P)
 ///   Middle  → receives P         (net: -X)
 ///   Last    → receives 0         (net: -(X+P))
@@ -20,7 +20,7 @@ pragma solidity ^0.8.20;
 ///   - Steps are self-reported. v2 will add trust-circle quorum or oracle.
 ///   - Uses native chain currency (xDAI on Chiado for testing). The CRC
 ///     ERC-20 wrapper plugs in by changing the deposit / payout calls.
-contract WoodenSpoonChallenge {
+contract AnchorChallenge {
     enum Status { Open, Settled, Cancelled }
 
     struct Challenge {

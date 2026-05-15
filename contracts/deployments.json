@@ -2,7 +2,7 @@
   "localhost-anvil": {
     "chainId": 31337,
     "rpc": "http://127.0.0.1:8545",
-    "challengeContract": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "challengeContract": "0x68B1D87F95878fE05B998F19b66F4baba5De1aed",
     "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     "deployedAt": "2026-05-14",
     "notes": "Local Anvil testnet — runs only when `anvil` is alive on this machine. Address is deterministic; redeploys will land at the same address on a fresh Anvil instance."

@@ -61,7 +61,7 @@ const defaultState = {
     ],
     steps: 7842,
   },
-  // Wooden-spoon challenge state machine: idle → lobby → active → ended → idle.
+  // Anchor challenge state machine: idle → lobby → active → ended → idle.
   challenge: {
     state: 'idle',
     config: null,

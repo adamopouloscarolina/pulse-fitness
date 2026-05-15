@@ -15,7 +15,7 @@ export const DEFAULT_CONFIG = {
   goal:         'steps',       // 'steps' | 'distance-km' | 'active-min'
   durationDays: 7,
   stakeX:       20,            // "to-win" stake in CRC
-  stakeP:       10,            // "wooden-spoon" penalty deposit in CRC
+  stakeP:       10,            // "anchor" penalty deposit in CRC
 };
 
 // Generates a fresh challenge in 'lobby' state.
@@ -81,14 +81,14 @@ export function bumpYourSteps(challenge, delta) {
   return { ...challenge, group: { ...challenge.group, members }};
 }
 
-// Sort by steps desc → assign ranks → compute payouts via wooden-spoon math.
+// Sort by steps desc → assign ranks → compute payouts via anchor math.
 export function computeRanking(members) {
   return [...members]
     .sort((a, b) => b.steps - a.steps)
     .map((m, i) => ({ ...m, rank: i + 1 }));
 }
 
-// Wooden-spoon payout (per spec):
+// Anchor payout (per spec):
 //   1st     → +(N-1)X + P  net
 //   middle  → -X
 //   last    → -(X + P)
